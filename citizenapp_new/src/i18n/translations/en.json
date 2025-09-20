@@ -1,0 +1,85 @@
+{
+  "profile": {
+    "title": "Profile",
+    "loggedInAs": "Logged in as",
+    "changeLanguage": "Change Language",
+    "logout": "Logout",
+    "logoutFailed": "Logout Failed",
+    "logoutError": "An error occurred while signing out.",
+    "selectLanguagePlaceholder": "Select a language"
+  },
+  "home": {
+    "appName": "MyCity",
+    "searchPlaceholder": "Search complaint type, issue or area",
+    "quickActions": {
+      "report": "Report Complaint",
+      "track": "Track Complaints",
+      "nearby": "Nearby Issues",
+      "helpline": "Helpline",
+      "leaderboard": "Leaderboard"
+    },
+    "categoriesTitle": "Categories",
+    "bannerTitle": "Cleanliness Drive",
+    "bannerText": "Join us this Sunday for a city-wide cleanliness drive.",
+    "recentUpdates": "Recent Updates",
+    "topResponders": "Top Responders"
+  },
+  "myComplaints": {
+    "title": "My Complaints",
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "resolved": "Resolved"
+    },
+    "emptyStateText": "You haven't submitted any complaints yet."
+  },
+  "nearbyIssues": {
+    "loading": "Finding nearby issues...",
+    "errorTitle": "Error",
+    "errorLoading": "Failed to load map data. Please try again later."
+  },
+  "report": {
+    "category": "Category",
+    "selectCategory": "Select a category",
+    "description": "Description",
+    "descriptionPlaceholder": "Provide details about the issue...",
+    "addAttachments": "Add Attachments",
+    "uploadPhoto": "Upload Photo",
+    "fetchingLocation": "Fetching location...",
+    "locationCaptured": "Location captured successfully",
+    "locationNotAvailable": "Location not available",
+    "submitComplaint": "Submit Complaint",
+    "success": "Success",
+    "complaintSubmitted": "Your complaint has been submitted!",
+    "complaintSavedOffline": "Complaint Saved Offline",
+    "complaintWillBeSubmitted": "Your complaint will be submitted automatically when you're back online.",
+    "submissionFailed": "Submission Failed",
+    "submissionError": "An error occurred. Please try again.",
+    "missingInfo": "Missing Information",
+    "missingInfoDetail": "Please select a category and provide a description.",
+    "authError": "Authentication Error",
+    "authErrorDetail": "You must be logged in.",
+    "permissionDenied": "Permission Denied",
+    "locationPermissionDenied": "Permission to access location was denied.",
+    "cameraPermissionDenied": "Camera permissions are required.",
+    "locationError": "Location Error",
+    "locationErrorDetail": "Could not fetch the location.",
+    "selectImageTitle": "Select Image",
+    "selectImageMessage": "Choose an option",
+    "takePhoto": "Take Photo...",
+    "chooseFromLibrary": "Choose from Library...",
+    "cancel": "Cancel",
+    "selectedImage": "Selected Image",
+    "syncComplete": "Sync Complete",
+    "syncedOfflineComplaints": "Your offline complaints have been submitted."
+  },
+  "categories": {
+    "garbage": "Garbage",
+    "waterLeak": "Water Leak",
+    "roads": "Roads",
+    "streetlight": "Streetlight",
+    "pollution": "Pollution",
+    "other": "Other"
+  }
+}

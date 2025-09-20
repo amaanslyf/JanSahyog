@@ -1,0 +1,85 @@
+{
+  "profile": {
+    "title": "ప్రొఫైల్",
+    "loggedInAs": "గా లాగిన్ అయ్యారు:",
+    "changeLanguage": "భాషను మార్చండి",
+    "logout": "లాగ్ అవుట్",
+    "logoutFailed": "లాగ్అవుట్ విఫలమైంది",
+    "logoutError": "సైన్ అవుట్ చేస్తున్నప్పుడు ఒక లోపం సంభవించింది.",
+    "selectLanguagePlaceholder": "ఒక భాషను ఎంచుకోండి"
+  },
+  "home": {
+    "appName": "మైనగరం",
+    "searchPlaceholder": "ఫిర్యాదు రకం, సమస్య లేదా ప్రాంతం కోసం శోధించండి",
+    "quickActions": {
+      "report": "ఫిర్యాదు నివేదించండి",
+      "track": "ఫిర్యాదులను ట్రాక్ చేయండి",
+      "nearby": "సమీపంలోని సమస్యలు",
+      "helpline": "హెల్ప్‌లైన్",
+      "leaderboard": "లీడర్‌బోర్డ్"
+    },
+    "categoriesTitle": "వర్గాలు",
+    "bannerTitle": "స్వచ్ఛత డ్రైవ్",
+    "bannerText": "ఈ ఆదివారం నగరవ్యాప్త శుభ్రపరిచే ప్రచారంలో మాతో చేరండి.",
+    "recentUpdates": "ఇటీవలి నవీకరణలు",
+    "topResponders": "టాప్ రెస్పాండర్స్"
+  },
+  "myComplaints": {
+    "title": "నా ఫిర్యాదులు",
+    "tabs": {
+      "all": "అన్నీ",
+      "pending": "పెండింగ్‌లో ఉంది",
+      "inProgress": "ప్రోగ్రెస్‌లో ఉంది",
+      "resolved": "పరిష్కరించబడింది"
+    },
+    "emptyStateText": "మీరు ఇంకా ఏ ఫిర్యాదులను సమర్పించలేదు."
+  },
+  "nearbyIssues": {
+    "loading": "సమీపంలోని సమస్యలను కనుగొంటోంది...",
+    "errorTitle": "లోపం",
+    "errorLoading": "మ్యాప్ డేటాను లోడ్ చేయడంలో విఫలమైంది. దయచేసి తరువాత మళ్లీ ప్రయత్నించండి."
+  },
+  "report": {
+    "category": "వర్గం",
+    "selectCategory": "ఒక వర్గాన్ని ఎంచుకోండి",
+    "description": "వివరణ",
+    "descriptionPlaceholder": "సమస్య గురించి వివరాలను అందించండి...",
+    "addAttachments": "జోడింపులను జోడించండి",
+    "uploadPhoto": "ఫోటోను అప్‌లోడ్ చేయండి",
+    "fetchingLocation": "స్థానాన్ని పొందుతోంది...",
+    "locationCaptured": "స్థానం విజయవంతంగా సంగ్రహించబడింది",
+    "locationNotAvailable": "స్థానం అందుబాటులో లేదు",
+    "submitComplaint": "ఫిర్యాదును సమర్పించండి",
+    "success": "విజయం",
+    "complaintSubmitted": "మీ ఫిర్యాదు సమర్పించబడింది!",
+    "complaintSavedOffline": "ఫిర్యాదు ఆఫ్‌లైన్‌లో సేవ్ చేయబడింది",
+    "complaintWillBeSubmitted": "మీరు తిరిగి ఆన్‌లైన్‌లోకి వచ్చినప్పుడు మీ ఫిర్యాదు స్వయంచాలకంగా సమర్పించబడుతుంది.",
+    "submissionFailed": "సమర్పణ విఫలమైంది",
+    "submissionError": "ఒక లోపం సంభవించింది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+    "missingInfo": "సమాచారం లేదు",
+    "missingInfoDetail": "దయచేసి ఒక వర్గాన్ని ఎంచుకుని, వివరణను అందించండి.",
+    "authError": "ప్రామాణీకరణ లోపం",
+    "authErrorDetail": "మీరు లాగిన్ అయి ఉండాలి.",
+    "permissionDenied": "అనుమతి నిరాకరించబడింది",
+    "locationPermissionDenied": "స్థానాన్ని యాక్సెస్ చేయడానికి అనుమతి నిరాకరించబడింది.",
+    "cameraPermissionDenied": "కెమెరా అనుమతులు అవసరం.",
+    "locationError": "స్థాన లోపం",
+    "locationErrorDetail": "స్థానాన్ని పొందడం సాధ్యపడలేదు.",
+    "selectImageTitle": "చిత్రాన్ని ఎంచుకోండి",
+    "selectImageMessage": "ఒక ఎంపికను ఎంచుకోండి",
+    "takePhoto": "ఫోటో తీయండి...",
+    "chooseFromLibrary": "లైబ్రరీ నుండి ఎంచుకోండి...",
+    "cancel": "రద్దు చేయండి",
+    "selectedImage": "ఎంచుకున్న చిత్రం",
+    "syncComplete": "సింక్ పూర్తయింది",
+    "syncedOfflineComplaints": "మీ ఆఫ్‌లైన్ ఫిర్యాదులు సమర్పించబడ్డాయి."
+  },
+  "categories": {
+    "garbage": "చెత్త",
+    "waterLeak": "నీటి లీక్",
+    "roads": "రోడ్లు",
+    "streetlight": "వీధి దీపం",
+    "pollution": "కాలుష్యం",
+    "other": "ఇతర"
+  }
+}

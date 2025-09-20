@@ -1,0 +1,85 @@
+{
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "loggedInAs": "के रूप में लॉग इन",
+    "changeLanguage": "भाषा बदलें",
+    "logout": "लॉग आउट",
+    "logoutFailed": "लॉगआउट विफल",
+    "logoutError": "साइन आउट करते समय एक त्रुटि हुई।",
+    "selectLanguagePlaceholder": "एक भाषा चुनें"
+  },
+  "home": {
+    "appName": "मेरा शहर",
+    "searchPlaceholder": "शिकायत प्रकार, समस्या या क्षेत्र खोजें",
+    "quickActions": {
+      "report": "शिकायत दर्ज करें",
+      "track": "शिकायतें ट्रैक करें",
+      "nearby": "आसपास की समस्याएँ",
+      "helpline": "हेल्पलाइन",
+      "leaderboard": "लीडरबोर्ड"
+    },
+    "categoriesTitle": "श्रेणियाँ",
+    "bannerTitle": "स्वच्छता अभियान",
+    "bannerText": "इस रविवार शहरव्यापी स्वच्छता अभियान में हमारे साथ जुड़ें।",
+    "recentUpdates": "हाल की अपडेट्स",
+    "topResponders": "शीर्ष उत्तरदाता"
+  },
+  "myComplaints": {
+    "title": "मेरी शिकायतें",
+    "tabs": {
+      "all": "सभी",
+      "pending": "लंबित",
+      "inProgress": "प्रगति पर",
+      "resolved": "हल हो गया"
+    },
+    "emptyStateText": "आपने अभी तक कोई शिकायत जमा नहीं की है।"
+  },
+  "nearbyIssues": {
+    "loading": "आसपास की समस्याएँ खोजी जा रही हैं...",
+    "errorTitle": "त्रुटि",
+    "errorLoading": "मानचित्र डेटा लोड करने में विफल। कृपया बाद में पुनः प्रयास करें।"
+  },
+  "report": {
+    "category": "श्रेणी",
+    "selectCategory": "एक श्रेणी चुनें",
+    "description": "विवरण",
+    "descriptionPlaceholder": "समस्या के बारे में विवरण प्रदान करें...",
+    "addAttachments": "अटैचमेंट जोड़ें",
+    "uploadPhoto": "तस्वीर डालें",
+    "fetchingLocation": "स्थान प्राप्त किया जा रहा है...",
+    "locationCaptured": "स्थान सफलतापूर्वक प्राप्त हुआ",
+    "locationNotAvailable": "स्थान उपलब्ध नहीं है",
+    "submitComplaint": "शिकायत दर्ज करें",
+    "success": "सफलता",
+    "complaintSubmitted": "आपकी शिकायत दर्ज कर दी गई है!",
+    "complaintSavedOffline": "शिकायत ऑफ़लाइन सहेजी गई",
+    "complaintWillBeSubmitted": "जब आप वापस ऑनलाइन होंगे तो आपकी शिकायत स्वचालित रूप से सबमिट हो जाएगी।",
+    "submissionFailed": "सबमिशन विफल",
+    "submissionError": "एक त्रुटि हुई। कृपया पुन: प्रयास करें।",
+    "missingInfo": "जानकारी अधूरी है",
+    "missingInfoDetail": "कृपया एक श्रेणी चुनें और विवरण प्रदान करें।",
+    "authError": "प्रमाणीकरण त्रुटि",
+    "authErrorDetail": "आपको लॉग इन होना चाहिए।",
+    "permissionDenied": "अनुमति अस्वीकृत",
+    "locationPermissionDenied": "स्थान तक पहुँचने की अनुमति अस्वीकार कर दी गई थी।",
+    "cameraPermissionDenied": "कैमरे की अनुमति आवश्यक है।",
+    "locationError": "स्थान त्रुटि",
+    "locationErrorDetail": "स्थान प्राप्त नहीं किया जा सका।",
+    "selectImageTitle": "छवि चुनें",
+    "selectImageMessage": "एक विकल्प चुनें",
+    "takePhoto": "फोटो लें...",
+    "chooseFromLibrary": "लाइब्रेरी से चुनें...",
+    "cancel": "रद्द करें",
+    "selectedImage": "चयनित छवि",
+    "syncComplete": "सिंक पूरा हुआ",
+    "syncedOfflineComplaints": "आपकी ऑफ़लाइन शिकायतें सबमिट कर दी गई हैं।"
+  },
+  "categories": {
+    "garbage": "कचरा",
+    "waterLeak": "पानी का रिसाव",
+    "roads": "सड़कें",
+    "streetlight": "सड़क की बत्ती",
+    "pollution": "प्रदूषण",
+    "other": "अन्य"
+  }
+}

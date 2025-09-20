@@ -1,0 +1,85 @@
+{
+  "profile": {
+    "title": "சுயவிவரம்",
+    "loggedInAs": "என உள்நுழைந்துள்ளீர்கள்:",
+    "changeLanguage": "மொழியை மாற்று",
+    "logout": "வெளியேறு",
+    "logoutFailed": "வெளியேற முடியவில்லை",
+    "logoutError": "வெளியேறும்போது ஒரு பிழை ஏற்பட்டது.",
+    "selectLanguagePlaceholder": "ஒரு மொழியைத் தேர்ந்தெடுக்கவும்"
+  },
+  "home": {
+    "appName": "என்நகரம்",
+    "searchPlaceholder": "புகார் வகை, சிக்கல் அல்லது பகுதியைத் தேடுங்கள்",
+    "quickActions": {
+      "report": "புகாரைப் பதிவுசெய்",
+      "track": "புகார்களைக் கண்காணி",
+      "nearby": "அருகிலுள்ள சிக்கல்கள்",
+      "helpline": "உதவி எண்",
+      "leaderboard": "தரவரிசை"
+    },
+    "categoriesTitle": "வகைகள்",
+    "bannerTitle": "தூய்மைப் பணி",
+    "bannerText": "இந்த ஞாயிற்றுக்கிழமை நகர அளவிலான தூய்மைப் பிரச்சாரத்தில் எங்களுடன் சேருங்கள்.",
+    "recentUpdates": "சமீபத்திய புதுப்பிப்புகள்",
+    "topResponders": "சிறந்த பதிலளிப்பாளர்கள்"
+  },
+  "myComplaints": {
+    "title": "என் புகார்கள்",
+    "tabs": {
+      "all": "அனைத்தும்",
+      "pending": "நிலுவையில்",
+      "inProgress": "செயலில்",
+      "resolved": "தீர்ந்தது"
+    },
+    "emptyStateText": "நீங்கள் இன்னும் எந்த புகாரையும் சமர்ப்பிக்கவில்லை."
+  },
+  "nearbyIssues": {
+    "loading": "அருகிலுள்ள சிக்கல்கள் தேடப்படுகின்றன...",
+    "errorTitle": "பிழை",
+    "errorLoading": "வரைபடத் தரவை ஏற்ற முடியவில்லை. தயவுசெய்து பிறகு முயற்சி செய்யவும்."
+  },
+  "report": {
+    "category": "வகை",
+    "selectCategory": "ஒரு வகையைத் தேர்ந்தெடுக்கவும்",
+    "description": "விவரம்",
+    "descriptionPlaceholder": "சிக்கலைப் பற்றிய விவரங்களை வழங்கவும்...",
+    "addAttachments": "இணைப்புகளைச் சேர்",
+    "uploadPhoto": "புகைப்படத்தைப் பதிவேற்று",
+    "fetchingLocation": "இருப்பிடத்தைப் பெறுகிறது...",
+    "locationCaptured": "இருப்பிடம் வெற்றிகரமாகப் பிடிக்கப்பட்டது",
+    "locationNotAvailable": "இருப்பிடம் கிடைக்கவில்லை",
+    "submitComplaint": "புகாரைச் சமர்ப்பி",
+    "success": "வெற்றி",
+    "complaintSubmitted": "உங்கள் புகார் சமர்ப்பிக்கப்பட்டது!",
+    "complaintSavedOffline": "புகார் ஆஃப்லைனில் சேமிக்கப்பட்டது",
+    "complaintWillBeSubmitted": "நீங்கள் மீண்டும் ஆன்லைனில் வரும்போது உங்கள் புகார் தானாகவே சமர்ப்பிக்கப்படும்.",
+    "submissionFailed": "சமர்ப்பிப்பு தோல்வியடைந்தது",
+    "submissionError": "ஒரு பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+    "missingInfo": "விவரங்கள் இல்லை",
+    "missingInfoDetail": "தயவுசெய்து ஒரு வகையைத் தேர்ந்தெடுத்து விவரத்தை வழங்கவும்.",
+    "authError": "அங்கீகாரப் பிழை",
+    "authErrorDetail": "நீங்கள் உள்நுழைந்திருக்க வேண்டும்.",
+    "permissionDenied": "அனுமதி மறுக்கப்பட்டது",
+    "locationPermissionDenied": "இருப்பிடத்தை அணுகுவதற்கான அனுமதி மறுக்கப்பட்டது.",
+    "cameraPermissionDenied": "கேமரா அனுமதிகள் தேவை.",
+    "locationError": "இருப்பிடப் பிழை",
+    "locationErrorDetail": "இருப்பிடத்தைப் பெற முடியவில்லை.",
+    "selectImageTitle": "படத்தைத் தேர்ந்தெடு",
+    "selectImageMessage": "ஒரு விருப்பத்தைத் தேர்வுசெய்க",
+    "takePhoto": "புகைப்படம் எடு...",
+    "chooseFromLibrary": "நூலகத்திலிருந்து தேர்வுசெய்...",
+    "cancel": "ரத்துசெய்",
+    "selectedImage": "தேர்ந்தெடுக்கப்பட்ட படம்",
+    "syncComplete": "ஒத்திசைவு முடிந்தது",
+    "syncedOfflineComplaints": "உங்கள் ஆஃப்லைன் புகார்கள் சமர்ப்பிக்கப்பட்டுள்ளன."
+  },
+  "categories": {
+    "garbage": "குப்பை",
+    "waterLeak": "நீர் கசிவு",
+    "roads": "சாலைகள்",
+    "streetlight": "தெருவிளக்கு",
+    "pollution": "மாசுபாடு",
+    "other": "மற்றவை"
+  }
+}

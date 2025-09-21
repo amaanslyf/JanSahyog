@@ -6,7 +6,13 @@
     "logout": "लॉग आउट",
     "logoutFailed": "लॉगआउट विफल",
     "logoutError": "साइन आउट करते समय एक त्रुटि हुई।",
-    "selectLanguagePlaceholder": "एक भाषा चुनें"
+    "selectLanguagePlaceholder": "एक भाषा चुनें",
+    "editProfile": "प्रोफाइल संपादित करें",
+    "notifications": "सूचनाएं",
+    "privacy": "गोपनीयता",
+    "support": "सहायता",
+    "about": "के बारे में",
+    "logoutConfirm": "क्या आप वाकई लॉगआउट करना चाहते हैं?"
   },
   "home": {
     "appName": "मेरा शहर",
@@ -22,7 +28,13 @@
     "bannerTitle": "स्वच्छता अभियान",
     "bannerText": "इस रविवार शहरव्यापी स्वच्छता अभियान में हमारे साथ जुड़ें।",
     "recentUpdates": "हाल की अपडेट्स",
-    "topResponders": "शीर्ष उत्तरदाता"
+    "topResponders": "शीर्ष उत्तरदाता",
+    "stats": {
+      "totalIssues": "कुल समस्याएं",
+      "myReports": "मेरी रिपोर्ट्स",
+      "resolvedToday": "आज हल हुई",
+      "inProgress": "प्रगति में"
+    }
   },
   "myComplaints": {
     "title": "मेरी शिकायतें",
@@ -32,14 +44,31 @@
       "inProgress": "प्रगति पर",
       "resolved": "हल हो गया"
     },
-    "emptyStateText": "आपने अभी तक कोई शिकायत जमा नहीं की है।"
+    "emptyStateText": "आपने अभी तक कोई शिकायत जमा नहीं की है।",
+    "empty": {
+      "title": "अभी तक कोई रिपोर्ट नहीं",
+      "subtitle": "अपने क्षेत्र में नागरिक समस्या की रिपोर्ट करके शुरुआत करें",
+      "button": "समस्या रिपोर्ट करें"
+    }
   },
   "nearbyIssues": {
+    "title": "आसपास की समस्याएं",
     "loading": "आसपास की समस्याएँ खोजी जा रही हैं...",
     "errorTitle": "त्रुटि",
-    "errorLoading": "मानचित्र डेटा लोड करने में विफल। कृपया बाद में पुनः प्रयास करें।"
+    "errorLoading": "मानचित्र डेटा लोड करने में विफल। कृपया बाद में पुनः प्रयास करें।",
+    "filters": "फिल्टर",
+    "refresh": "रीफ्रेश",
+    "radius": "खोज त्रिज्या",
+    "getDirections": "दिशा निर्देश प्राप्त करें",
+    "distance": "दूरी",
+    "reporter": "रिपोर्टर",
+    "department": "विभाग",
+    "address": "पता",
+    "noLocation": "स्थान उपलब्ध नहीं"
   },
   "report": {
+    "title": "समस्या रिपोर्ट करें",
+    "subtitle": "अपने समुदाय को बेहतर बनाने में मदद करें",
     "category": "श्रेणी",
     "selectCategory": "एक श्रेणी चुनें",
     "description": "विवरण",
@@ -72,7 +101,27 @@
     "cancel": "रद्द करें",
     "selectedImage": "चयनित छवि",
     "syncComplete": "सिंक पूरा हुआ",
-    "syncedOfflineComplaints": "आपकी ऑफ़लाइन शिकायतें सबमिट कर दी गई हैं।"
+    "syncedOfflineComplaints": "आपकी ऑफ़लाइन शिकायतें सबमिट कर दी गई हैं।",
+    "issueTitle": "समस्या का शीर्षक",
+    "issueTitlePlaceholder": "समस्या का संक्षिप्त विवरण शीर्षक",
+    "priority": "प्राथमिकता स्तर",
+    "addPhoto": "फोटो जोड़ें",
+    "photoRequired": "फोटो आवश्यक",
+    "location": "स्थान",
+    "updateLocation": "स्थान अपडेट करें",
+    "submitReport": "रिपोर्ट जमा करें",
+    "submitting": "जमा किया जा रहा है...",
+    "successTitle": "सफलता!",
+    "successMessage": "आपकी शिकायत सफलतापूर्वक जमा की गई है। आपको इसकी प्रगति पर अपडेट मिलेंगे।",
+    "failedTitle": "सबमिशन विफल",
+    "failedMessage": "कृपया पुनः प्रयास करें। अपना इंटरनेट कनेक्शन जांचें।",
+    "validation": {
+      "titleRequired": "कृपया अपनी शिकायत के लिए एक शीर्षक दर्ज करें",
+      "descriptionRequired": "कृपया समस्या का विवरण प्रदान करें",
+      "categoryRequired": "कृपया एक श्रेणी चुनें",
+      "imageRequired": "अपनी शिकायत जमा करने के लिए कृपया समस्या की फोटो जोड़ें",
+      "loginRequired": "शिकायत जमा करने के लिए कृपया लॉगिन करें"
+    }
   },
   "categories": {
     "garbage": "कचरा",
@@ -81,5 +130,35 @@
     "streetlight": "सड़क की बत्ती",
     "pollution": "प्रदूषण",
     "other": "अन्य"
+  },
+  "auth": {
+    "login": "लॉगिन",
+    "logout": "लॉगआउट",
+    "register": "रजिस्टर",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "loginError": "लॉगिन असफल। कृपया अपनी जानकारी जांचें।",
+    "registerError": "रजिस्ट्रेशन असफल। कृपया फिर से कोशिश करें।",
+    "invalidEmail": "कृपया एक वैध ईमेल पता दर्ज करें",
+    "weakPassword": "पासवर्ड कम से कम 6 अक्षर का होना चाहिए",
+    "passwordMismatch": "पासवर्ड मेल नहीं खाते"
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफलता",
+    "cancel": "रद्द करें",
+    "ok": "ठीक है",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "save": "सेव करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "back": "वापस",
+    "next": "अगला",
+    "done": "पूर्ण",
+    "required": "आवश्यक"
   }
 }

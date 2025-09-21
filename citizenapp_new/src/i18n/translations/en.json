@@ -6,13 +6,19 @@
     "logout": "Logout",
     "logoutFailed": "Logout Failed",
     "logoutError": "An error occurred while signing out.",
-    "selectLanguagePlaceholder": "Select a language"
+    "selectLanguagePlaceholder": "Select a Language",
+    "editProfile": "Edit Profile",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "support": "Support",
+    "about": "About",
+    "logoutConfirm": "Are you sure you want to logout?"
   },
   "home": {
-    "appName": "MyCity",
+    "appName": "My City",
     "searchPlaceholder": "Search complaint type, issue or area",
     "quickActions": {
-      "report": "Report Complaint",
+      "report": "Report Issue",
       "track": "Track Complaints",
       "nearby": "Nearby Issues",
       "helpline": "Helpline",
@@ -22,7 +28,13 @@
     "bannerTitle": "Cleanliness Drive",
     "bannerText": "Join us this Sunday for a city-wide cleanliness drive.",
     "recentUpdates": "Recent Updates",
-    "topResponders": "Top Responders"
+    "topResponders": "Top Responders",
+    "stats": {
+      "totalIssues": "Total Issues",
+      "myReports": "My Reports",
+      "resolvedToday": "Resolved Today",
+      "inProgress": "In Progress"
+    }
   },
   "myComplaints": {
     "title": "My Complaints",
@@ -32,39 +44,56 @@
       "inProgress": "In Progress",
       "resolved": "Resolved"
     },
-    "emptyStateText": "You haven't submitted any complaints yet."
+    "emptyStateText": "You haven't submitted any complaints yet.",
+    "empty": {
+      "title": "No Reports Yet",
+      "subtitle": "Start by reporting a civic issue in your area",
+      "button": "Report an Issue"
+    }
   },
   "nearbyIssues": {
+    "title": "Nearby Issues",
     "loading": "Finding nearby issues...",
     "errorTitle": "Error",
-    "errorLoading": "Failed to load map data. Please try again later."
+    "errorLoading": "Failed to load map data. Please try again later.",
+    "filters": "Filters",
+    "refresh": "Refresh",
+    "radius": "Search Radius",
+    "getDirections": "Get Directions",
+    "distance": "Distance",
+    "reporter": "Reporter",
+    "department": "Department",
+    "address": "Address",
+    "noLocation": "Location not available"
   },
   "report": {
+    "title": "Report an Issue",
+    "subtitle": "Help improve your community",
     "category": "Category",
-    "selectCategory": "Select a category",
+    "selectCategory": "Select a Category",
     "description": "Description",
     "descriptionPlaceholder": "Provide details about the issue...",
     "addAttachments": "Add Attachments",
     "uploadPhoto": "Upload Photo",
-    "fetchingLocation": "Fetching location...",
+    "fetchingLocation": "Getting location...",
     "locationCaptured": "Location captured successfully",
     "locationNotAvailable": "Location not available",
     "submitComplaint": "Submit Complaint",
     "success": "Success",
     "complaintSubmitted": "Your complaint has been submitted!",
-    "complaintSavedOffline": "Complaint Saved Offline",
-    "complaintWillBeSubmitted": "Your complaint will be submitted automatically when you're back online.",
+    "complaintSavedOffline": "Complaint saved offline",
+    "complaintWillBeSubmitted": "Your complaint will be automatically submitted when you're back online.",
     "submissionFailed": "Submission Failed",
     "submissionError": "An error occurred. Please try again.",
     "missingInfo": "Missing Information",
-    "missingInfoDetail": "Please select a category and provide a description.",
+    "missingInfoDetail": "Please select a category and provide description.",
     "authError": "Authentication Error",
-    "authErrorDetail": "You must be logged in.",
+    "authErrorDetail": "You need to be logged in.",
     "permissionDenied": "Permission Denied",
-    "locationPermissionDenied": "Permission to access location was denied.",
-    "cameraPermissionDenied": "Camera permissions are required.",
+    "locationPermissionDenied": "Location access permission was denied.",
+    "cameraPermissionDenied": "Camera permission is required.",
     "locationError": "Location Error",
-    "locationErrorDetail": "Could not fetch the location.",
+    "locationErrorDetail": "Could not get location.",
     "selectImageTitle": "Select Image",
     "selectImageMessage": "Choose an option",
     "takePhoto": "Take Photo...",
@@ -72,14 +101,64 @@
     "cancel": "Cancel",
     "selectedImage": "Selected Image",
     "syncComplete": "Sync Complete",
-    "syncedOfflineComplaints": "Your offline complaints have been submitted."
+    "syncedOfflineComplaints": "Your offline complaints have been submitted.",
+    "issueTitle": "Issue Title",
+    "issueTitlePlaceholder": "Brief title describing the issue",
+    "priority": "Priority Level",
+    "addPhoto": "Add Photo",
+    "photoRequired": "Photo Required",
+    "location": "Location",
+    "updateLocation": "Update Location",
+    "submitReport": "Submit Report",
+    "submitting": "Submitting...",
+    "successTitle": "Success!",
+    "successMessage": "Your complaint has been submitted successfully. You will receive updates on its progress.",
+    "failedTitle": "Submission Failed",
+    "failedMessage": "Please try again. Check your internet connection.",
+    "validation": {
+      "titleRequired": "Please enter a title for your complaint",
+      "descriptionRequired": "Please provide a description of the issue",
+      "categoryRequired": "Please select a category",
+      "imageRequired": "Please add a photo of the issue to submit your complaint",
+      "loginRequired": "Please login to submit complaints"
+    }
   },
   "categories": {
     "garbage": "Garbage",
     "waterLeak": "Water Leak",
     "roads": "Roads",
-    "streetlight": "Streetlight",
+    "streetlight": "Street Light",
     "pollution": "Pollution",
     "other": "Other"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "loginError": "Login failed. Please check your credentials.",
+    "registerError": "Registration failed. Please try again.",
+    "invalidEmail": "Please enter a valid email address",
+    "weakPassword": "Password should be at least 6 characters",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "required": "Required"
   }
 }

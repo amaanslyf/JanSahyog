@@ -1,26 +1,26 @@
 {
   "profile": {
     "title": "প্রোফাইল",
-    "loggedInAs": " হিসাবে লগ ইন:",
+    "loggedInAs": "হিসাবে লগ ইন",
     "changeLanguage": "ভাষা পরিবর্তন করুন",
     "logout": "লগ আউট",
-    "logoutFailed": "লগআউট ব্যর্থ হয়েছে",
-    "logoutError": "সাইন আউট করার সময় একটি ত্রুটি ঘটেছে।",
+    "logoutFailed": "লগ আউট ব্যর্থ",
+    "logoutError": "সাইন আউট করার সময় একটি ত্রুটি হয়েছে।",
     "selectLanguagePlaceholder": "একটি ভাষা নির্বাচন করুন"
   },
   "home": {
-    "appName": "মাইসিটি",
-    "searchPlaceholder": "অভিযোগের ধরন, সমস্যা বা এলাকা খুঁজুন",
+    "appName": "আমার শহর",
+    "searchPlaceholder": "অভিযোগের ধরন, সমস্যা বা এলাকা অনুসন্ধান করুন",
     "quickActions": {
-      "report": "অভিযোগ রিপোর্ট করুন",
+      "report": "অভিযোগ দাখিল করুন",
       "track": "অভিযোগ ট্র্যাক করুন",
       "nearby": "কাছাকাছি সমস্যা",
       "helpline": "হেল্পলাইন",
       "leaderboard": "লিডারবোর্ড"
     },
-    "categoriesTitle": "বিভাগ",
+    "categoriesTitle": "বিভাগসমূহ",
     "bannerTitle": "পরিচ্ছন্নতা অভিযান",
-    "bannerText": "এই রবিবার শহর-ব্যাপী পরিচ্ছন্নতা অভিযানে আমাদের সাথে যোগ দিন।",
+    "bannerText": "এই রবিবার শহরব্যাপী পরিচ্ছন্নতা অভিযানে আমাদের সাথে যোগ দিন।",
     "recentUpdates": "সাম্প্রতিক আপডেট",
     "topResponders": "শীর্ষ প্রতিক্রিয়াকারী"
   },
@@ -28,58 +28,53 @@
     "title": "আমার অভিযোগ",
     "tabs": {
       "all": "সব",
-      "pending": "বিচারাধীন",
+      "pending": "মুলতুবি",
       "inProgress": "চলমান",
-      "resolved": "সমাধান"
+      "resolved": "সমাধান হয়েছে"
     },
     "emptyStateText": "আপনি এখনও কোনো অভিযোগ জমা দেননি।"
   },
   "nearbyIssues": {
+    "title": "কাছাকাছি সমস্যা",
     "loading": "কাছাকাছি সমস্যা খোঁজা হচ্ছে...",
     "errorTitle": "ত্রুটি",
-    "errorLoading": "মানচিত্রের তথ্য লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
+    "errorLoading": "ম্যাপ ডেটা লোড করতে ব্যর্থ। পরে আবার চেষ্টা করুন।"
   },
   "report": {
+    "title": "সমস্যা রিপোর্ট করুন",
+    "subtitle": "আপনার সম্প্রদায়ের উন্নতিতে সাহায্য করুন",
     "category": "বিভাগ",
     "selectCategory": "একটি বিভাগ নির্বাচন করুন",
-    "description": "বর্ণনা",
-    "descriptionPlaceholder": "সমস্যা সম্পর্কে বিস্তারিত তথ্য দিন...",
+    "description": "বিবরণ",
+    "descriptionPlaceholder": "সমস্যা সম্পর্কে বিবরণ প্রদান করুন...",
     "addAttachments": "সংযুক্তি যোগ করুন",
     "uploadPhoto": "ছবি আপলোড করুন",
-    "fetchingLocation": "অবস্থান আনা হচ্ছে...",
-    "locationCaptured": "অবস্থান সফলভাবে ক্যাপচার করা হয়েছে",
-    "locationNotAvailable": "অবস্থান উপলব্ধ নেই",
     "submitComplaint": "অভিযোগ জমা দিন",
-    "success": "সফল",
+    "success": "সাফল্য",
     "complaintSubmitted": "আপনার অভিযোগ জমা দেওয়া হয়েছে!",
-    "complaintSavedOffline": "অভিযোগ অফলাইনে সংরক্ষিত হয়েছে",
-    "complaintWillBeSubmitted": "আপনি অনলাইনে ফিরে এলে আপনার অভিযোগ স্বয়ংক্রিয়ভাবে জমা দেওয়া হবে।",
-    "submissionFailed": "জমা দিতে ব্যর্থ",
-    "submissionError": "একটি ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
-    "missingInfo": "তথ্য অনুপস্থিত",
-    "missingInfoDetail": "অনুগ্রহ করে একটি বিভাগ নির্বাচন করুন এবং একটি বর্ণনা দিন।",
-    "authError": "প্রমাণೀಕರಣ ত্রুটি",
-    "authErrorDetail": "আপনাকে লগ ইন করতে হবে।",
-    "permissionDenied": "অনুমতি প্রত্যাখ্যান করা হয়েছে",
-    "locationPermissionDenied": "অবস্থান অ্যাক্সেস করার অনুমতি প্রত্যাখ্যান করা হয়েছে।",
-    "cameraPermissionDenied": "ক্যামেরার অনুমতি প্রয়োজন।",
-    "locationError": "অবস্থান ত্রুটি",
-    "locationErrorDetail": "অবস্থান আনা যায়নি।",
-    "selectImageTitle": "ছবি নির্বাচন করুন",
-    "selectImageMessage": "একটি বিকল্প চয়ন করুন",
-    "takePhoto": "ছবি তুলুন...",
-    "chooseFromLibrary": "লাইব্রেরি থেকে চয়ন করুন...",
-    "cancel": "বাতিল করুন",
-    "selectedImage": "নির্বাচিত ছবি",
-    "syncComplete": "সিঙ্ক সম্পূর্ণ",
-    "syncedOfflineComplaints": "আপনার অফলাইন অভিযোগ জমা দেওয়া হয়েছে।"
+    "submissionFailed": "জমা দেওয়া ব্যর্থ",
+    "submissionError": "একটি ত্রুটি হয়েছে। দয়া করে আবার চেষ্টা করুন।"
   },
   "categories": {
     "garbage": "আবর্জনা",
-    "waterLeak": "জল লিকেজ",
+    "waterLeak": "পানির লিক",
     "roads": "রাস্তা",
-    "streetlight": "রাস্তার আলো",
+    "streetlight": "স্ট্রিট লাইট",
     "pollution": "দূষণ",
     "other": "অন্যান্য"
+  },
+  "auth": {
+    "login": "লগইন",
+    "logout": "লগআউট",
+    "register": "নিবন্ধন",
+    "email": "ইমেইল",
+    "password": "পাসওয়ার্ড"
+  },
+  "common": {
+    "loading": "লোড হচ্ছে...",
+    "error": "ত্রুটি",
+    "success": "সাফল্য",
+    "cancel": "বাতিল",
+    "ok": "ঠিক আছে"
   }
 }

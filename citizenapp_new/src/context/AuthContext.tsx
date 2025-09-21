@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+// AuthContext.tsx - FIXED INFINITE INITIALIZATION
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useFirebase } from '../hooks/useFirebase';
 import NetInfo from '@react-native-community/netinfo';
@@ -12,10 +13,13 @@ import {
     setDoc, 
     serverTimestamp,
     onSnapshot,
-    Timestamp
+    Timestamp,
+    orderBy,
+    limit
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationService from '../services/notificationService';
 
 interface AuthContextType {
     user: User | null;
@@ -24,6 +28,9 @@ interface AuthContextType {
     updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
     isOnline: boolean;
     pendingUploads: number;
+    notificationService: NotificationService | null;
+    notifications: Notification[];
+    unreadNotifications: number;
 }
 
 interface UserProfile {
@@ -37,12 +44,29 @@ interface UserProfile {
     lastActive: Timestamp;
     createdAt: Timestamp;
     role: 'citizen' | 'admin';
+    pushToken?: string;
+    notificationsEnabled?: boolean;
+    notificationPreferences?: {
+        issueUpdates: boolean;
+        generalNews: boolean;
+        emergencyAlerts: boolean;
+        departmentUpdates: boolean;
+    };
     preferences: {
         language: string;
         notifications: boolean;
         emailUpdates: boolean;
     };
     source: 'mobile_app' | 'web_portal';
+}
+
+interface Notification {
+    id: string;
+    title: string;
+    body: string;
+    data?: any;
+    read: boolean;
+    createdAt: Timestamp;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
@@ -52,6 +76,9 @@ const AuthContext = createContext<AuthContextType>({
     updateUserProfile: async () => {},
     isOnline: true,
     pendingUploads: 0,
+    notificationService: null,
+    notifications: [],
+    unreadNotifications: 0,
 });
 
 // Enhanced sync function for admin portal compatibility
@@ -59,7 +86,6 @@ const syncPendingUploads = async (db: any, storage: any) => {
     console.log("🔄 Checking for pending uploads...");
 
     try {
-        // UPDATED: Check both old complaints collection and new civicIssues collection
         const queries = [
             query(collection(db, "complaints"), where("status", "==", "Pending Upload")),
             query(collection(db, "civicIssues"), where("status", "==", "Pending Upload"))
@@ -82,7 +108,6 @@ const syncPendingUploads = async (db: any, storage: any) => {
                 try {
                     console.log(`🖼️ Uploading image for ${docId}...`);
                     
-                    // Upload image
                     const response = await fetch(data.localImageUri);
                     const blob = await response.blob();
                     const fileName = `${data.reportedById || data.userId || 'anonymous'}/${Date.now()}`;
@@ -90,13 +115,12 @@ const syncPendingUploads = async (db: any, storage: any) => {
                     await uploadBytes(storageRef, blob);
                     const downloadURL = await getDownloadURL(storageRef);
 
-                    // Update document with admin portal compatible fields
                     const docRef = doc(db, collectionName, docId);
                     const updateData = {
-                        imageUri: downloadURL, // Admin portal expects imageUri
-                        imageUrl: downloadURL, // Keep old field for backward compatibility
-                        status: 'Open', // Change to Open (admin portal status)
-                        localImageUri: null, // Clear local path
+                        imageUri: downloadURL,
+                        imageUrl: downloadURL,
+                        status: 'Open',
+                        localImageUri: null,
                         lastUpdated: serverTimestamp(),
                         updatedBy: 'mobile_sync',
                         syncedAt: serverTimestamp(),
@@ -110,7 +134,6 @@ const syncPendingUploads = async (db: any, storage: any) => {
             }
         }
 
-        // Sync offline complaints from AsyncStorage
         await syncOfflineComplaints(db, storage);
 
     } catch (error) {
@@ -118,7 +141,6 @@ const syncPendingUploads = async (db: any, storage: any) => {
     }
 };
 
-// Sync offline complaints with admin portal compatibility
 const syncOfflineComplaints = async (db: any, storage: any) => {
     try {
         const savedComplaintsJSON = await AsyncStorage.getItem('offline_complaints');
@@ -141,28 +163,24 @@ const syncOfflineComplaints = async (db: any, storage: any) => {
                     imageUrl = await getDownloadURL(storageRef);
                 }
 
-                // Admin portal compatible data structure
                 const complaintData = {
                     ...complaint,
-                    imageUri: imageUrl, // Admin portal field
-                    imageUrl: imageUrl, // Legacy field
+                    imageUri: imageUrl,
+                    imageUrl: imageUrl,
                     status: 'Open',
-                    submittedAt: serverTimestamp(), // Legacy field
-                    reportedAt: serverTimestamp(), // Admin portal field
+                    submittedAt: serverTimestamp(),
+                    reportedAt: serverTimestamp(),
                     lastUpdated: serverTimestamp(),
                     updatedBy: 'mobile_sync',
                     source: 'mobile_app',
                     publicVisible: true,
                 };
 
-                // Remove offline-specific fields
                 delete complaintData.localImageUri;
                 delete complaintData.pointsToAdd;
 
-                // Use civicIssues collection (admin portal compatibility)
                 await setDoc(doc(collection(db, "civicIssues")), complaintData);
 
-                // Update user points
                 if (complaint.pointsToAdd && complaint.reportedById) {
                     const userRef = doc(db, "users", complaint.reportedById);
                     await updateDoc(userRef, {
@@ -178,7 +196,6 @@ const syncOfflineComplaints = async (db: any, storage: any) => {
             }
         }
 
-        // Clear synced complaints
         await AsyncStorage.removeItem('offline_complaints');
         console.log(`🧹 Cleared synced offline complaints`);
     } catch (error) {
@@ -193,27 +210,105 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isOnline, setIsOnline] = useState(true);
     const [pendingUploads, setPendingUploads] = useState(0);
+    const [notificationService, setNotificationService] = useState<NotificationService | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-    // Monitor authentication state
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setUser(user);
-            
-            if (user) {
-                // Load user profile from Firestore
-                loadUserProfile(user.uid);
-            } else {
-                setUserProfile(null);
-            }
-            
-            setIsLoading(false);
+    // ✅ FIX: Use refs to prevent re-initialization
+    const notificationServiceRef = useRef<NotificationService | null>(null);
+    const isInitializingRef = useRef(false);
+    const notificationUnsubscribeRef = useRef<(() => void) | null>(null);
+    const profileUnsubscribeRef = useRef<(() => void) | null>(null);
+
+    // ✅ FIX: Memoized load user notifications (no dependencies)
+    const loadUserNotifications = useCallback((userId: string) => {
+        if (notificationUnsubscribeRef.current) {
+            notificationUnsubscribeRef.current();
+        }
+
+        const notificationsRef = collection(db, `users/${userId}/notifications`);
+        const notificationsQuery = query(notificationsRef, orderBy('createdAt', 'desc'), limit(50));
+
+        const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
+            const userNotifications: Notification[] = [];
+            let unreadCount = 0;
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const notification = {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt || Timestamp.now()
+                } as Notification;
+
+                userNotifications.push(notification);
+                if (!notification.read) {
+                    unreadCount++;
+                }
+            });
+
+            setNotifications(userNotifications);
+            setUnreadNotifications(unreadCount);
         });
-        
-        return () => unsubscribe();
-    }, [auth]);
 
-    // Load user profile with real-time updates
-    const loadUserProfile = (uid: string) => {
+        notificationUnsubscribeRef.current = unsubscribe;
+        return unsubscribe;
+    }, []); // ✅ FIX: Empty dependency array
+
+    // ✅ FIX: Memoized initialization function (no dependencies)
+    const initializeNotifications = useCallback(async (userId: string) => {
+        // Prevent multiple initializations
+        if (isInitializingRef.current || notificationServiceRef.current) {
+            console.log('🔄 NotificationService already initializing or initialized, skipping...');
+            return;
+        }
+
+        try {
+            isInitializingRef.current = true;
+            console.log('🚀 Initializing NotificationService for user:', userId);
+
+            const notService = new NotificationService(db, auth);
+            await notService.initialize();
+            
+            notificationServiceRef.current = notService;
+            setNotificationService(notService);
+
+            // Load user notifications
+            loadUserNotifications(userId);
+            
+            console.log('✅ NotificationService initialized successfully');
+        } catch (error) {
+            console.error('❌ Error initializing notifications:', error);
+        } finally {
+            isInitializingRef.current = false;
+        }
+    }, []); // ✅ FIX: Empty dependency array
+
+    // ✅ FIX: Memoized cleanup function (no dependencies)
+    const cleanupNotifications = useCallback(() => {
+        if (notificationServiceRef.current) {
+            console.log('🧹 Cleaning up NotificationService...');
+            notificationServiceRef.current.cleanup();
+            notificationServiceRef.current = null;
+            setNotificationService(null);
+        }
+        
+        if (notificationUnsubscribeRef.current) {
+            notificationUnsubscribeRef.current();
+            notificationUnsubscribeRef.current = null;
+        }
+
+        setNotifications([]);
+        setUnreadNotifications(0);
+        isInitializingRef.current = false;
+    }, []); // ✅ FIX: Empty dependency array
+
+    // ✅ FIX: Memoized load user profile (no dependencies except db)
+    const loadUserProfile = useCallback((uid: string) => {
+        if (profileUnsubscribeRef.current) {
+            profileUnsubscribeRef.current();
+        }
+
         const userRef = doc(db, 'users', uid);
         
         const unsubscribe = onSnapshot(userRef, (doc) => {
@@ -227,11 +322,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.error('Error loading user profile:', error);
         });
 
+        profileUnsubscribeRef.current = unsubscribe;
         return unsubscribe;
-    };
+    }, []); // ✅ FIX: Empty dependency array
 
-    // Update user profile
-    const updateUserProfile = async (data: Partial<UserProfile>) => {
+    // ✅ FIX: Monitor authentication state with proper cleanup (no dependencies)
+    useEffect(() => {
+        console.log('🔐 Setting up auth state listener...');
+        
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            console.log('👤 Auth state changed:', user ? `User: ${user.uid}` : 'No user');
+            
+            setUser(user);
+            
+            if (user) {
+                // Only initialize if not already done
+                if (!notificationServiceRef.current && !isInitializingRef.current) {
+                    loadUserProfile(user.uid);
+                    await initializeNotifications(user.uid);
+                }
+            } else {
+                setUserProfile(null);
+                cleanupNotifications();
+            }
+            
+            setIsLoading(false);
+        });
+        
+        return () => {
+            console.log('🧹 Cleaning up auth listener...');
+            unsubscribe();
+            cleanupNotifications();
+        };
+    }, []); // ✅ FIX: Empty dependency array
+
+    // ✅ FIX: Update user profile with memoization
+    const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
         if (!user) return;
         
         try {
@@ -244,7 +370,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error('❌ Error updating user profile:', error);
         }
-    };
+    }, [user, db]);
 
     // Monitor network connectivity
     useEffect(() => {
@@ -276,7 +402,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             })
         );
 
-        // Also check offline complaints
         const checkOfflineComplaints = async () => {
             try {
                 const offlineData = await AsyncStorage.getItem('offline_complaints');
@@ -296,7 +421,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
     }, [user, db]);
 
-    // Update user activity on app state changes
+    // Update user activity
     useEffect(() => {
         if (user && userProfile) {
             const updateActivity = async () => {
@@ -307,16 +432,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             };
 
-            // Update activity every 5 minutes while app is active
             const interval = setInterval(updateActivity, 5 * 60 * 1000);
             return () => clearInterval(interval);
         }
-    }, [user, userProfile]);
+    }, [user, userProfile, updateUserProfile]);
 
     // Initial sync on app start
     useEffect(() => {
         if (user && isOnline) {
-            // Delay initial sync to let everything load
             const timer = setTimeout(() => {
                 syncPendingUploads(db, storage);
             }, 2000);
@@ -332,6 +455,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updateUserProfile,
         isOnline,
         pendingUploads,
+        notificationService,
+        notifications,
+        unreadNotifications,
     };
 
     return (
@@ -341,7 +467,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 };
 
-// Enhanced hook with additional user data
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {

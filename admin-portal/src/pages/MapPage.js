@@ -1,4 +1,4 @@
-// src/pages/MapPage.js - INTERACTIVE MAP WITH ISSUE MARKERS
+// src/pages/MapPage.js - FIXED IMPORTS
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -13,18 +13,16 @@ import {
   Chip,
   Stack,
   Alert,
-  Paper,
   List,
   ListItem,
   ListItemText,
   IconButton,
   Tooltip,
-  Badge,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   Drawer,
-} from '@mui/material';
+  CircularProgress,
+  Grid,
+} from '@mui/material';  // ✅ FIXED: FROM @mui/material
+
 import {
   MyLocation as LocationIcon,
   FilterList as FilterIcon,
@@ -33,7 +31,10 @@ import {
   Navigation as NavigationIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
-} from '@mui/icons-material';
+  Business as DepartmentIcon,
+  Schedule as TimeIcon,
+} from '@mui/icons-material';  // ✅ CORRECT: Icons from @mui/icons-material
+
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -51,8 +52,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom marker icons for different issue statuses
-const createCustomIcon = (status, priority) => {
+// Enhanced custom marker icons for different issue statuses and priorities
+const createCustomIcon = (status, priority, category) => {
   let color = '#f44336'; // Red for Open
   if (status === 'In Progress') color = '#ff9800'; // Orange
   if (status === 'Resolved') color = '#4caf50'; // Green
@@ -61,6 +62,17 @@ const createCustomIcon = (status, priority) => {
   if (priority === 'Critical') size = 35;
   if (priority === 'High') size = 30;
   if (priority === 'Low') size = 20;
+
+  // Get emoji based on category
+  let emoji = '🚨';
+  switch (category) {
+    case 'Garbage': emoji = '🗑️'; break;
+    case 'Water Leak': emoji = '💧'; break;
+    case 'Roads': emoji = '🛣️'; break;
+    case 'Streetlight': emoji = '💡'; break;
+    case 'Pollution': emoji = '🌫️'; break;
+    default: emoji = '🚨';
+  }
 
   return L.divIcon({
     className: 'custom-marker',
@@ -79,7 +91,7 @@ const createCustomIcon = (status, priority) => {
         font-weight: bold;
         font-size: ${size > 25 ? '14px' : '12px'};
       ">
-        🚨
+        ${emoji}
       </div>
     `,
     iconSize: [size, size],
@@ -158,6 +170,7 @@ const MapPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [mapCenter, setMapCenter] = useState([28.6139, 77.2090]); // Default to Delhi
   const [mapZoom, setMapZoom] = useState(11);
@@ -191,93 +204,41 @@ const MapPage = () => {
     setTimeout(() => setAlert({ show: false, message: '', severity: 'info' }), 5000);
   };
 
-  // Initialize sample issues with coordinates
+  // Load real issues from Firebase
   useEffect(() => {
-    // Enhanced sample issues with realistic Delhi coordinates
-    const sampleIssues = [
-      {
-        id: '1',
-        title: 'Pothole on Ring Road',
-        description: 'Large pothole causing traffic issues',
-        status: 'Open',
-        priority: 'High',
-        department: 'Roads & Infrastructure',
-        reportedBy: 'citizen1@gmail.com',
-        reportedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        address: 'Ring Road, Near AIIMS, New Delhi',
-        coordinates: [28.5672, 77.2100], // Near AIIMS
-        imageUri: null
-      },
-      {
-        id: '2',
-        title: 'Broken Street Light',
-        description: 'Street light not working for 3 days',
-        status: 'In Progress',
-        priority: 'Medium',
-        department: 'Electrical & Street Lighting',
-        reportedBy: 'citizen2@gmail.com',
-        reportedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        address: 'Connaught Place, Central Delhi',
-        coordinates: [28.6315, 77.2167], // Connaught Place
-        imageUri: null
-      },
-      {
-        id: '3',
-        title: 'Garbage Collection Delay',
-        description: 'Garbage not collected for 5 days',
-        status: 'Resolved',
-        priority: 'Low',
-        department: 'Sanitation & Waste Management',
-        reportedBy: 'citizen3@gmail.com',
-        reportedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        address: 'Lajpat Nagar, South Delhi',
-        coordinates: [28.5677, 77.2431], // Lajpat Nagar
-        imageUri: null
-      },
-      {
-        id: '4',
-        title: 'Water Leakage',
-        description: 'Major water pipeline leak',
-        status: 'Open',
-        priority: 'Critical',
-        department: 'Water & Drainage',
-        reportedBy: 'citizen4@gmail.com',
-        reportedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        address: 'Karol Bagh, Central Delhi',
-        coordinates: [28.6506, 77.1905], // Karol Bagh
-        imageUri: null
-      },
-      {
-        id: '5',
-        title: 'Tree Fallen on Road',
-        description: 'Large tree blocking road after storm',
-        status: 'In Progress',
-        priority: 'High',
-        department: 'Parks & Environment',
-        reportedBy: 'citizen5@gmail.com',
-        reportedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        address: 'India Gate, Central Delhi',
-        coordinates: [28.6129, 77.2295], // India Gate
-        imageUri: null
-      },
-      {
-        id: '6',
-        title: 'Road Construction Debris',
-        description: 'Construction material blocking footpath',
-        status: 'Open',
-        priority: 'Medium',
-        department: 'Roads & Infrastructure',
-        reportedBy: 'citizen6@gmail.com',
-        reportedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-        address: 'Janpath, New Delhi',
-        coordinates: [28.6222, 77.2273], // Janpath
-        imageUri: null
-      }
-    ];
+    const issuesQuery = query(
+      collection(db, 'civicIssues'),
+      orderBy('reportedAt', 'desc')
+    );
 
-    setIssues(sampleIssues);
-    setFilteredIssues(sampleIssues);
-    setLoading(false);
+    const unsubscribe = onSnapshot(issuesQuery, (querySnapshot) => {
+      const issuesList = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Only include issues that have valid coordinates
+        if (data.location && data.location.latitude && data.location.longitude) {
+          issuesList.push({ 
+            id: doc.id, 
+            ...data,
+            coordinates: [data.location.latitude, data.location.longitude],
+            reportedAt: data.reportedAt || new Date(),
+            formattedDate: formatDate(data.reportedAt)
+          });
+        }
+      });
+      setIssues(issuesList);
+      setLoading(false);
+      
+      if (issuesList.length === 0) {
+        showAlert('No issues with location data found on the map', 'info');
+      }
+    }, (error) => {
+      console.error('Error fetching issues:', error);
+      setLoading(false);
+      showAlert('Failed to load issues', 'error');
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Filter issues based on selected criteria
@@ -292,12 +253,16 @@ const MapPage = () => {
       filtered = filtered.filter(issue => issue.priority === priorityFilter);
     }
 
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(issue => issue.category === categoryFilter);
+    }
+
     if (departmentFilter !== 'all') {
-      filtered = filtered.filter(issue => issue.department === departmentFilter);
+      filtered = filtered.filter(issue => issue.assignedDepartment === departmentFilter);
     }
 
     setFilteredIssues(filtered);
-  }, [issues, statusFilter, priorityFilter, departmentFilter]);
+  }, [issues, statusFilter, priorityFilter, categoryFilter, departmentFilter]);
 
   // Handle marker click
   const handleMarkerClick = (issue) => {
@@ -320,6 +285,11 @@ const MapPage = () => {
     showAlert('Your location has been found!', 'success');
   };
 
+  // Get unique values for filters
+  const getUniqueValues = (field) => {
+    return [...new Set(issues.map(issue => issue[field]).filter(Boolean))].sort();
+  };
+
   // Get status color
   const getStatusColor = (status) => {
     switch (status) {
@@ -340,6 +310,24 @@ const MapPage = () => {
       default: return '#9e9e9e';
     }
   };
+
+  // Calculate map statistics
+  const mapStats = {
+    total: filteredIssues.length,
+    open: filteredIssues.filter(i => i.status === 'Open').length,
+    inProgress: filteredIssues.filter(i => i.status === 'In Progress').length,
+    resolved: filteredIssues.filter(i => i.status === 'Resolved').length,
+    critical: filteredIssues.filter(i => i.priority === 'Critical').length,
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+        <Typography ml={2}>Loading map data...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -369,15 +357,49 @@ const MapPage = () => {
           </Alert>
         )}
 
-        {/* Quick Filters */}
-        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+        {/* Map Statistics */}
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={6} sm={3} md={2}>
+            <Card sx={{ textAlign: 'center', py: 1 }}>
+              <Typography variant="h6" color="primary">{mapStats.total}</Typography>
+              <Typography variant="caption" color="textSecondary">Total</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={3} md={2}>
+            <Card sx={{ textAlign: 'center', py: 1 }}>
+              <Typography variant="h6" color="error">{mapStats.open}</Typography>
+              <Typography variant="caption" color="textSecondary">Open</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={3} md={2}>
+            <Card sx={{ textAlign: 'center', py: 1 }}>
+              <Typography variant="h6" color="warning.main">{mapStats.inProgress}</Typography>
+              <Typography variant="caption" color="textSecondary">In Progress</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={3} md={2}>
+            <Card sx={{ textAlign: 'center', py: 1 }}>
+              <Typography variant="h6" color="success.main">{mapStats.resolved}</Typography>
+              <Typography variant="caption" color="textSecondary">Resolved</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={3} md={2}>
+            <Card sx={{ textAlign: 'center', py: 1 }}>
+              <Typography variant="h6" color="error.dark">{mapStats.critical}</Typography>
+              <Typography variant="caption" color="textSecondary">Critical</Typography>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Dynamic Filters */}
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Status</InputLabel>
             <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
               <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="Open">Open</MenuItem>
-              <MenuItem value="In Progress">In Progress</MenuItem>
-              <MenuItem value="Resolved">Resolved</MenuItem>
+              {getUniqueValues('status').map(status => (
+                <MenuItem key={status} value={status}>{status}</MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -385,10 +407,19 @@ const MapPage = () => {
             <InputLabel>Priority</InputLabel>
             <Select value={priorityFilter} label="Priority" onChange={(e) => setPriorityFilter(e.target.value)}>
               <MenuItem value="all">All Priority</MenuItem>
-              <MenuItem value="Critical">Critical</MenuItem>
-              <MenuItem value="High">High</MenuItem>
-              <MenuItem value="Medium">Medium</MenuItem>
-              <MenuItem value="Low">Low</MenuItem>
+              {getUniqueValues('priority').map(priority => (
+                <MenuItem key={priority} value={priority}>{priority}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Category</InputLabel>
+            <Select value={categoryFilter} label="Category" onChange={(e) => setCategoryFilter(e.target.value)}>
+              <MenuItem value="all">All Categories</MenuItem>
+              {getUniqueValues('category').map(category => (
+                <MenuItem key={category} value={category}>{category}</MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -396,163 +427,205 @@ const MapPage = () => {
             <InputLabel>Department</InputLabel>
             <Select value={departmentFilter} label="Department" onChange={(e) => setDepartmentFilter(e.target.value)}>
               <MenuItem value="all">All Departments</MenuItem>
-              <MenuItem value="Roads & Infrastructure">Roads & Infrastructure</MenuItem>
-              <MenuItem value="Electrical & Street Lighting">Electrical & Lighting</MenuItem>
-              <MenuItem value="Sanitation & Waste Management">Sanitation</MenuItem>
-              <MenuItem value="Water & Drainage">Water & Drainage</MenuItem>
-              <MenuItem value="Parks & Environment">Parks & Environment</MenuItem>
+              {getUniqueValues('assignedDepartment').map(dept => (
+                <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+              ))}
             </Select>
           </FormControl>
 
-          {/* Active Filters Display */}
-          {(statusFilter !== 'all' || priorityFilter !== 'all' || departmentFilter !== 'all') && (
-            <Box display="flex" alignItems="center" gap={1}>
-              <Typography variant="body2" color="textSecondary">Active filters:</Typography>
-              {statusFilter !== 'all' && (
-                <Chip 
-                  label={`Status: ${statusFilter}`} 
-                  size="small" 
-                  onDelete={() => setStatusFilter('all')}
-                  color="primary"
-                />
-              )}
-              {priorityFilter !== 'all' && (
-                <Chip 
-                  label={`Priority: ${priorityFilter}`} 
-                  size="small" 
-                  onDelete={() => setPriorityFilter('all')}
-                  color="secondary"
-                />
-              )}
-              {departmentFilter !== 'all' && (
-                <Chip 
-                  label={`Dept: ${departmentFilter.split('&')[0].trim()}`} 
-                  size="small" 
-                  onDelete={() => setDepartmentFilter('all')}
-                  color="success"
-                />
-              )}
-            </Box>
+          {/* Clear Filters Button */}
+          {(statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all' || departmentFilter !== 'all') && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setStatusFilter('all');
+                setPriorityFilter('all');
+                setCategoryFilter('all');
+                setDepartmentFilter('all');
+              }}
+            >
+              Clear All Filters
+            </Button>
           )}
         </Stack>
+
+        {/* Active Filters Display */}
+        {(statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all' || departmentFilter !== 'all') && (
+          <Box display="flex" alignItems="center" gap={1} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="textSecondary">Active filters:</Typography>
+            {statusFilter !== 'all' && (
+              <Chip 
+                label={`Status: ${statusFilter}`} 
+                size="small" 
+                onDelete={() => setStatusFilter('all')}
+                color="primary"
+              />
+            )}
+            {priorityFilter !== 'all' && (
+              <Chip 
+                label={`Priority: ${priorityFilter}`} 
+                size="small" 
+                onDelete={() => setPriorityFilter('all')}
+                color="secondary"
+              />
+            )}
+            {categoryFilter !== 'all' && (
+              <Chip 
+                label={`Category: ${categoryFilter}`} 
+                size="small" 
+                onDelete={() => setCategoryFilter('all')}
+                color="success"
+              />
+            )}
+            {departmentFilter !== 'all' && (
+              <Chip 
+                label={`Dept: ${departmentFilter}`} 
+                size="small" 
+                onDelete={() => setDepartmentFilter('all')}
+                color="warning"
+              />
+            )}
+          </Box>
+        )}
       </Box>
 
       {/* Map Container */}
       <Box sx={{ flex: 1, position: 'relative' }}>
-        <MapContainer
-          center={mapCenter}
-          zoom={mapZoom}
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {/* Map Controls */}
-          <MapController 
-            center={mapCenter} 
+        {filteredIssues.length === 0 ? (
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%" bgcolor="grey.100">
+            <Typography variant="h6" color="textSecondary">
+              No issues with location data found for the selected filters
+            </Typography>
+          </Box>
+        ) : (
+          <MapContainer
+            center={mapCenter}
             zoom={mapZoom}
-            onLocationFound={handleLocationFound}
-          />
-
-          {/* User Location Marker */}
-          {userLocation && (
-            <Marker 
-              position={[userLocation.lat, userLocation.lng]}
-              icon={L.divIcon({
-                className: 'user-location-marker',
-                html: `
-                  <div style="
-                    background-color: #2196f3;
-                    width: 20px;
-                    height: 20px;
-                    border-radius: 50%;
-                    border: 3px solid white;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                  "></div>
-                `,
-                iconSize: [20, 20],
-                iconAnchor: [10, 10],
-              })}
-            >
-              <Popup>
-                <strong>Your Location</strong>
-              </Popup>
-            </Marker>
-          )}
-
-          {/* Issue Markers */}
-          {filteredIssues.map((issue) => {
-            if (!issue.coordinates || issue.coordinates.length !== 2) return null;
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
             
-            return (
-              <Marker
-                key={issue.id}
-                position={issue.coordinates}
-                icon={createCustomIcon(issue.status, issue.priority)}
-                eventHandlers={{
-                  click: () => handleMarkerClick(issue),
-                }}
+            {/* Map Controls */}
+            <MapController 
+              center={mapCenter} 
+              zoom={mapZoom}
+              onLocationFound={handleLocationFound}
+            />
+
+            {/* User Location Marker */}
+            {userLocation && (
+              <Marker 
+                position={[userLocation.lat, userLocation.lng]}
+                icon={L.divIcon({
+                  className: 'user-location-marker',
+                  html: `
+                    <div style="
+                      background-color: #2196f3;
+                      width: 20px;
+                      height: 20px;
+                      border-radius: 50%;
+                      border: 3px solid white;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    "></div>
+                  `,
+                  iconSize: [20, 20],
+                  iconAnchor: [10, 10],
+                })}
               >
                 <Popup>
-                  <Box sx={{ minWidth: 250 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {issue.title}
-                    </Typography>
-                    
-                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                      <Chip 
-                        label={issue.status} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: getStatusColor(issue.status),
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }} 
-                      />
-                      <Chip 
-                        label={issue.priority} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ 
-                          borderColor: getPriorityColor(issue.priority),
-                          color: getPriorityColor(issue.priority)
-                        }} 
-                      />
-                    </Stack>
-                    
-                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                      {issue.description}
-                    </Typography>
-                    
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Location:</strong> {issue.address}
-                    </Typography>
-                    
-                    <Typography variant="body2" sx={{ mb: 2 }}>
-                      <strong>Department:</strong> {issue.department}
-                    </Typography>
-                    
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<ViewIcon />}
-                      onClick={() => handleViewIssueDetail(issue.id)}
-                      fullWidth
-                    >
-                      View Details
-                    </Button>
-                  </Box>
+                  <strong>Your Location</strong>
                 </Popup>
               </Marker>
-            );
-          })}
-        </MapContainer>
+            )}
+
+            {/* Real Issue Markers */}
+            {filteredIssues.map((issue) => {
+              if (!issue.coordinates || issue.coordinates.length !== 2) return null;
+              
+              return (
+                <Marker
+                  key={issue.id}
+                  position={issue.coordinates}
+                  icon={createCustomIcon(issue.status, issue.priority, issue.category)}
+                  eventHandlers={{
+                    click: () => handleMarkerClick(issue),
+                  }}
+                >
+                  <Popup>
+                    <Box sx={{ minWidth: 280 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        {issue.title || 'Untitled Issue'}
+                      </Typography>
+                      
+                      <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
+                        <Chip 
+                          label={issue.status || 'Open'} 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: getStatusColor(issue.status),
+                            color: 'white',
+                            fontWeight: 'bold'
+                          }} 
+                        />
+                        <Chip 
+                          label={issue.priority || 'Medium'} 
+                          size="small" 
+                          variant="outlined"
+                          sx={{ 
+                            borderColor: getPriorityColor(issue.priority),
+                            color: getPriorityColor(issue.priority)
+                          }} 
+                        />
+                        <Chip 
+                          label={issue.category || 'Other'} 
+                          size="small" 
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </Stack>
+                      
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                        {issue.description || 'No description available'}
+                      </Typography>
+                      
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>📍 Location:</strong> {issue.location?.address || 'Address not available'}
+                      </Typography>
+                      
+                      {issue.assignedDepartment && (
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>🏢 Department:</strong> {issue.assignedDepartment}
+                        </Typography>
+                      )}
+                      
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        <strong>📅 Reported:</strong> {issue.formattedDate}
+                      </Typography>
+                      
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<ViewIcon />}
+                        onClick={() => handleViewIssueDetail(issue.id)}
+                        fullWidth
+                      >
+                        View Details
+                      </Button>
+                    </Box>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        )}
       </Box>
 
-      {/* Sidebar with Issue List */}
+      {/* Enhanced Sidebar with Issue List */}
       <Drawer
         anchor="right"
         open={sidebarOpen}
@@ -568,7 +641,7 @@ const MapPage = () => {
         <Box sx={{ p: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              Issues List ({filteredIssues.length})
+              Issues on Map ({filteredIssues.length})
             </Typography>
             <IconButton onClick={() => setSidebarOpen(false)}>
               <CloseIcon />
@@ -588,12 +661,12 @@ const MapPage = () => {
               >
                 <ListItemText
                   primary={
-                    <Box display="flex" alignItems="center" gap={1}>
+                    <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                       <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                        {issue.title}
+                        {issue.title || 'Untitled Issue'}
                       </Typography>
                       <Chip 
-                        label={issue.status} 
+                        label={issue.status || 'Open'} 
                         size="small" 
                         sx={{ 
                           bgcolor: getStatusColor(issue.status),
@@ -606,18 +679,26 @@ const MapPage = () => {
                   secondary={
                     <Box>
                       <Typography variant="body2" color="textSecondary">
-                        {issue.description}
+                        {issue.description || 'No description'}
                       </Typography>
                       <Typography variant="caption" color="textSecondary">
-                        📍 {issue.address}
-                      </Typography>
-                      <br />
-                      <Typography variant="caption" color="textSecondary">
-                        🏢 {issue.department}
+                        📍 {issue.location?.address || 'Address not available'}
                       </Typography>
                       <br />
                       <Typography variant="caption" color="textSecondary">
-                        📅 {formatDate(issue.reportedAt)}
+                        🏷️ {issue.category || 'Other'}
+                      </Typography>
+                      {issue.assignedDepartment && (
+                        <>
+                          <br />
+                          <Typography variant="caption" color="textSecondary">
+                            🏢 {issue.assignedDepartment}
+                          </Typography>
+                        </>
+                      )}
+                      <br />
+                      <Typography variant="caption" color="textSecondary">
+                        📅 {issue.formattedDate}
                       </Typography>
                     </Box>
                   }

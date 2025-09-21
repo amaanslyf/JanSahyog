@@ -1,4 +1,4 @@
-// src/pages/UsersPage.js - COMPLETE USER MANAGEMENT SYSTEM
+// src/pages/UsersPage.js - REAL FIREBASE USER MANAGEMENT SYSTEM
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -25,6 +25,11 @@ import {
   Avatar,
   Tooltip,
   Grid,
+  Paper,
+  Tabs,
+  Tab,
+  CircularProgress,
+  Badge,
 } from '@mui/material';
 import {
   PersonAdd as AddUserIcon,
@@ -37,6 +42,11 @@ import {
   AdminPanelSettings as AdminIcon,
   Person as UserIcon,
   SupervisorAccount as ModeratorIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Smartphone as MobileIcon,
+  Computer as WebIcon,
+  TrendingUp as ActivityIcon,
 } from '@mui/icons-material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { 
@@ -48,7 +58,10 @@ import {
   addDoc, 
   deleteDoc,
   orderBy,
-  where 
+  where,
+  getDocs,
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 
@@ -62,34 +75,54 @@ const UsersPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [alert, setAlert] = useState({ show: false, message: '', severity: 'info' });
+  const [activeTab, setActiveTab] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   
   // New user form data
   const [newUser, setNewUser] = useState({
     email: '',
     displayName: '',
     role: 'citizen',
-    status: 'active'
+    status: 'active',
+    source: 'admin_created'
   });
 
   // Edit user form data
   const [editData, setEditData] = useState({
     role: '',
     status: '',
-    displayName: ''
+    displayName: '',
+    phone: '',
+    notificationsEnabled: true
   });
 
   // Safe date formatter
   const formatDate = (timestamp) => {
     try {
       if (timestamp && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate().toLocaleDateString();
+        return timestamp.toDate().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
       }
       if (timestamp instanceof Date) {
-        return timestamp.toLocaleDateString();
+        return timestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
       }
       if (timestamp) {
         const date = new Date(timestamp);
-        if (!isNaN(date)) return date.toLocaleDateString();
+        if (!isNaN(date)) return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
       }
       return 'Unknown';
     } catch (error) {
@@ -103,98 +136,138 @@ const UsersPage = () => {
     setTimeout(() => setAlert({ show: false, message: '', severity: 'info' }), 5000);
   };
 
-  // Fetch users and their issue statistics
+  // Load real users and issues data
   useEffect(() => {
-    // Fetch users from a mock collection (in real app, you'd have a users collection)
-    // For now, we'll derive users from issues
-    const issuesQuery = query(collection(db, 'civicIssues'), orderBy('reportedAt', 'desc'));
+    loadRealData();
+  }, []);
 
-    const unsubscribe = onSnapshot(issuesQuery, (querySnapshot) => {
-      const issuesList = [];
-      const userMap = new Map();
+  const loadRealData = async () => {
+    try {
+      setLoading(true);
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const issue = { id: doc.id, ...data };
-        issuesList.push(issue);
-
-        // Build user statistics
-        const email = data.reportedBy;
-        if (email && !userMap.has(email)) {
-          userMap.set(email, {
-            id: email, // Using email as ID
-            email: email,
-            displayName: email.split('@')[0], // Extract name from email
-            role: 'citizen', // Default role
-            status: 'active', // Default status
-            joinDate: data.reportedAt || new Date(),
-            totalIssues: 0,
-            resolvedIssues: 0,
-            openIssues: 0
+      // Load users from Firebase
+      const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+      const unsubscribeUsers = onSnapshot(usersQuery, async (querySnapshot) => {
+        const usersList = [];
+        
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          usersList.push({
+            id: doc.id,
+            ...userData,
+            createdAt: userData.createdAt || new Date(),
+            lastActive: userData.lastActive || userData.createdAt || new Date(),
+            displayName: userData.displayName || userData.email?.split('@')[0] || 'Unknown User',
+            role: userData.role || 'citizen',
+            status: userData.status || 'active',
+            source: userData.source || 'unknown',
+            points: userData.points || 0,
+            notificationsEnabled: userData.notificationsEnabled !== false
           });
-        }
+        });
 
-        // Update statistics
-        if (userMap.has(email)) {
-          const user = userMap.get(email);
-          user.totalIssues++;
-          if (data.status === 'Resolved') user.resolvedIssues++;
-          if (data.status === 'Open') user.openIssues++;
-        }
+        // Calculate user statistics by loading their issues
+        const enrichedUsers = await calculateUserStatistics(usersList);
+        setUsers(enrichedUsers);
+        setLoading(false);
       });
 
-      // Add some admin users for demo
-      userMap.set('admin@jansahyog.gov', {
-        id: 'admin@jansahyog.gov',
-        email: 'admin@jansahyog.gov',
-        displayName: 'System Administrator',
-        role: 'admin',
-        status: 'active',
-        joinDate: new Date('2023-01-01'),
-        totalIssues: 0,
-        resolvedIssues: 0,
-        openIssues: 0
+      // Load issues for statistics
+      const issuesQuery = query(collection(db, 'civicIssues'), orderBy('reportedAt', 'desc'));
+      const unsubscribeIssues = onSnapshot(issuesQuery, (querySnapshot) => {
+        const issuesList = [];
+        querySnapshot.forEach((doc) => {
+          issuesList.push({ id: doc.id, ...doc.data() });
+        });
+        setIssues(issuesList);
       });
 
-      userMap.set('moderator@jansahyog.gov', {
-        id: 'moderator@jansahyog.gov',
-        email: 'moderator@jansahyog.gov',
-        displayName: 'Content Moderator',
-        role: 'moderator',
-        status: 'active',
-        joinDate: new Date('2023-02-01'),
-        totalIssues: 0,
-        resolvedIssues: 0,
-        openIssues: 0
-      });
+      return () => {
+        unsubscribeUsers();
+        unsubscribeIssues();
+      };
 
-      setUsers(Array.from(userMap.values()));
-      setIssues(issuesList);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching data:', error);
+    } catch (error) {
+      console.error('Error loading data:', error);
       showAlert('Failed to load users', 'error');
       setLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
-  }, []);
+  // Calculate user statistics from their issues
+  const calculateUserStatistics = async (usersList) => {
+    const enrichedUsers = [];
+
+    for (const user of usersList) {
+      try {
+        // Get issues reported by this user
+        const userIssuesQuery = query(
+          collection(db, 'civicIssues'),
+          where('reportedById', '==', user.id)
+        );
+        const userIssuesSnapshot = await getDocs(userIssuesQuery);
+        
+        let totalIssues = 0;
+        let resolvedIssues = 0;
+        let openIssues = 0;
+        let inProgressIssues = 0;
+
+        userIssuesSnapshot.forEach((doc) => {
+          const issueData = doc.data();
+          totalIssues++;
+          
+          switch (issueData.status) {
+            case 'Resolved':
+              resolvedIssues++;
+              break;
+            case 'Open':
+              openIssues++;
+              break;
+            case 'In Progress':
+              inProgressIssues++;
+              break;
+          }
+        });
+
+        enrichedUsers.push({
+          ...user,
+          totalIssues,
+          resolvedIssues,
+          openIssues,
+          inProgressIssues,
+          resolutionRate: totalIssues > 0 ? Math.round((resolvedIssues / totalIssues) * 100) : 0
+        });
+
+      } catch (error) {
+        console.error(`Error calculating stats for user ${user.id}:`, error);
+        enrichedUsers.push({
+          ...user,
+          totalIssues: 0,
+          resolvedIssues: 0,
+          openIssues: 0,
+          inProgressIssues: 0,
+          resolutionRate: 0
+        });
+      }
+    }
+
+    return enrichedUsers;
+  };
 
   // Handle user update
   const handleUpdateUser = async () => {
     try {
-      // In a real app, you'd update the user in a users collection
-      // For demo, we'll just show success message
+      const userRef = doc(db, 'users', selectedUser.id);
+      await updateDoc(userRef, {
+        ...editData,
+        lastUpdated: serverTimestamp(),
+        updatedBy: 'admin'
+      });
+
       showAlert(`User ${selectedUser.email} updated successfully!`, 'success');
       setEditDialogOpen(false);
       setSelectedUser(null);
       
-      // Update local state for demo
-      setUsers(users.map(user => 
-        user.id === selectedUser.id 
-          ? { ...user, ...editData }
-          : user
-      ));
     } catch (error) {
       console.error('Error updating user:', error);
       showAlert('Failed to update user', 'error');
@@ -204,21 +277,20 @@ const UsersPage = () => {
   // Handle add user
   const handleAddUser = async () => {
     try {
-      // In a real app, you'd create the user using Firebase Admin SDK
-      const userId = Date.now().toString(); // Mock ID
-      const newUserData = {
+      await addDoc(collection(db, 'users'), {
         ...newUser,
-        id: userId,
-        joinDate: new Date(),
-        totalIssues: 0,
-        resolvedIssues: 0,
-        openIssues: 0
-      };
+        createdAt: serverTimestamp(),
+        lastActive: serverTimestamp(),
+        points: 0,
+        notificationsEnabled: true,
+        issuesReported: 0,
+        createdBy: 'admin'
+      });
 
-      setUsers([...users, newUserData]);
       showAlert('User added successfully!', 'success');
       setAddUserDialogOpen(false);
-      setNewUser({ email: '', displayName: '', role: 'citizen', status: 'active' });
+      setNewUser({ email: '', displayName: '', role: 'citizen', status: 'active', source: 'admin_created' });
+      
     } catch (error) {
       console.error('Error adding user:', error);
       showAlert('Failed to add user', 'error');
@@ -228,34 +300,74 @@ const UsersPage = () => {
   // Handle delete user
   const handleDeleteUser = async () => {
     try {
-      // In a real app, you'd delete from users collection
-      setUsers(users.filter(user => user.id !== selectedUser.id));
+      // Use batch to delete user and related data
+      const batch = writeBatch(db);
+      
+      // Delete user document
+      const userRef = doc(db, 'users', selectedUser.id);
+      batch.delete(userRef);
+      
+      // You might want to also handle their issues, comments, etc.
+      // For now, we'll just delete the user
+      
+      await batch.commit();
+      
       showAlert('User deleted successfully!', 'success');
       setDeleteDialogOpen(false);
       setSelectedUser(null);
+      
     } catch (error) {
       console.error('Error deleting user:', error);
       showAlert('Failed to delete user', 'error');
     }
   };
 
+  // Toggle user status
+  const handleToggleUserStatus = async (user, newStatus) => {
+    try {
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        status: newStatus,
+        lastUpdated: serverTimestamp(),
+        updatedBy: 'admin'
+      });
+
+      showAlert(`User ${newStatus === 'active' ? 'activated' : 'blocked'} successfully!`, 'success');
+      setAnchorEl(null);
+      
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      showAlert('Failed to update user status', 'error');
+    }
+  };
+
   // Export users to CSV
   const handleExportCSV = () => {
-    const csvHeaders = ['Email', 'Display Name', 'Role', 'Status', 'Join Date', 'Total Issues', 'Resolved Issues', 'Open Issues'];
-    const csvData = users.map(user => [
-      user.email,
-      user.displayName,
-      user.role,
-      user.status,
-      formatDate(user.joinDate),
-      user.totalIssues,
-      user.resolvedIssues,
-      user.openIssues
+    const csvHeaders = [
+      'Email', 'Display Name', 'Role', 'Status', 'Source', 'Join Date', 
+      'Last Active', 'Total Issues', 'Resolved Issues', 'Open Issues', 
+      'Resolution Rate', 'Points', 'Notifications Enabled'
+    ];
+    
+    const csvData = filteredUsers.map(user => [
+      user.email || '',
+      user.displayName || '',
+      user.role || '',
+      user.status || '',
+      user.source || '',
+      formatDate(user.createdAt),
+      formatDate(user.lastActive),
+      user.totalIssues || 0,
+      user.resolvedIssues || 0,
+      user.openIssues || 0,
+      `${user.resolutionRate || 0}%`,
+      user.points || 0,
+      user.notificationsEnabled ? 'Yes' : 'No'
     ]);
 
     const csvContent = [
       csvHeaders.join(','),
-      ...csvData.map(row => row.join(','))
+      ...csvData.map(row => row.map(field => `"${field}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -295,29 +407,65 @@ const UsersPage = () => {
     }
   };
 
-  // DataGrid columns
+  // Get source icon
+  const getSourceIcon = (source) => {
+    switch (source) {
+      case 'mobile_app': return <MobileIcon fontSize="small" />;
+      case 'web_portal': return <WebIcon fontSize="small" />;
+      default: return <UserIcon fontSize="small" />;
+    }
+  };
+
+  // Filter users based on search and filters
+  const filteredUsers = users.filter(user => {
+    const searchMatch = !searchTerm || 
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const roleMatch = roleFilter === 'all' || user.role === roleFilter;
+    const statusMatch = statusFilter === 'all' || user.status === statusFilter;
+    const sourceMatch = sourceFilter === 'all' || user.source === sourceFilter;
+    
+    return searchMatch && roleMatch && statusMatch && sourceMatch;
+  });
+
+  // Calculate statistics
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.status === 'active').length,
+    blocked: users.filter(u => u.status === 'blocked').length,
+    admins: users.filter(u => u.role === 'admin').length,
+    moderators: users.filter(u => u.role === 'moderator').length,
+    citizens: users.filter(u => u.role === 'citizen').length,
+    mobileUsers: users.filter(u => u.source === 'mobile_app').length,
+    webUsers: users.filter(u => u.source === 'web_portal').length,
+  };
+
+  // Enhanced DataGrid columns
   const columns = [
     { 
       field: 'email', 
-      headerName: 'Email', 
+      headerName: 'User', 
       width: 250,
       renderCell: (params) => (
         <Box display="flex" alignItems="center" gap={1}>
-          <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem' }}>
-            {params.value.charAt(0).toUpperCase()}
-          </Avatar>
-          <Typography variant="body2">{params.value}</Typography>
+          <Badge 
+            badgeContent={params.row.source === 'mobile_app' ? <MobileIcon sx={{ fontSize: 12 }} /> : ''}
+            color="primary"
+          >
+            <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem' }}>
+              {(params.row.displayName || params.value || 'U')[0].toUpperCase()}
+            </Avatar>
+          </Badge>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+              {params.row.displayName}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              {params.value}
+            </Typography>
+          </Box>
         </Box>
-      )
-    },
-    { 
-      field: 'displayName', 
-      headerName: 'Display Name', 
-      width: 180,
-      renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-          {params.value}
-        </Typography>
       )
     },
     { 
@@ -344,7 +492,7 @@ const UsersPage = () => {
     { 
       field: 'status', 
       headerName: 'Status', 
-      width: 120,
+      width: 100,
       renderCell: (params) => (
         <Chip 
           label={params.value}
@@ -359,31 +507,76 @@ const UsersPage = () => {
       )
     },
     { 
+      field: 'source', 
+      headerName: 'Source', 
+      width: 100,
+      renderCell: (params) => (
+        <Tooltip title={params.value}>
+          <Box display="flex" alignItems="center" justifyContent="center">
+            {getSourceIcon(params.value)}
+          </Box>
+        </Tooltip>
+      )
+    },
+    { 
       field: 'totalIssues', 
       headerName: 'Issues', 
-      width: 90,
+      width: 80,
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          {params.value}
+        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          {params.value || 0}
         </Typography>
       )
     },
     { 
       field: 'resolvedIssues', 
       headerName: 'Resolved', 
-      width: 90,
+      width: 80,
       renderCell: (params) => (
         <Typography variant="body2" color="success.main" sx={{ fontWeight: 'bold' }}>
-          {params.value}
+          {params.value || 0}
         </Typography>
       )
     },
     { 
-      field: 'joinDate', 
+      field: 'resolutionRate', 
+      headerName: 'Rate', 
+      width: 80,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          {params.value || 0}%
+        </Typography>
+      )
+    },
+    { 
+      field: 'points', 
+      headerName: 'Points', 
+      width: 80,
+      renderCell: (params) => (
+        <Chip 
+          label={params.value || 0}
+          size="small" 
+          color="warning"
+          variant="outlined"
+        />
+      )
+    },
+    { 
+      field: 'createdAt', 
       headerName: 'Joined', 
-      width: 120,
+      width: 100,
       renderCell: (params) => (
         <Typography variant="body2">
+          {formatDate(params.value)}
+        </Typography>
+      )
+    },
+    { 
+      field: 'lastActive', 
+      headerName: 'Last Seen', 
+      width: 100,
+      renderCell: (params) => (
+        <Typography variant="body2" color="textSecondary">
           {formatDate(params.value)}
         </Typography>
       )
@@ -391,7 +584,7 @@ const UsersPage = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 80,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -408,6 +601,15 @@ const UsersPage = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <CircularProgress />
+        <Typography ml={2}>Loading users...</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {/* Header */}
@@ -421,7 +623,7 @@ const UsersPage = () => {
             startIcon={<ExportIcon />}
             onClick={handleExportCSV}
           >
-            Export CSV
+            Export CSV ({filteredUsers.length})
           </Button>
           <Button
             variant="contained"
@@ -445,66 +647,134 @@ const UsersPage = () => {
       )}
 
       {/* Statistics Cards */}
-      <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={2} mb={3}>
+        <Grid item xs={6} sm={4} md={3} lg={2}>
           <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Users
-              </Typography>
-              <Typography variant="h4" component="h2">
-                {users.length}
-              </Typography>
+            <CardContent sx={{ py: 2 }}>
+              <Typography color="textSecondary" variant="body2">Total Users</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{stats.total}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={4} md={3} lg={2}>
           <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Active Users
-              </Typography>
-              <Typography variant="h4" component="h2" color="success.main">
-                {users.filter(u => u.status === 'active').length}
-              </Typography>
+            <CardContent sx={{ py: 2 }}>
+              <Typography color="textSecondary" variant="body2">Active</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>{stats.active}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={4} md={3} lg={2}>
           <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Admin Users
-              </Typography>
-              <Typography variant="h4" component="h2" color="error.main">
-                {users.filter(u => u.role === 'admin').length}
-              </Typography>
+            <CardContent sx={{ py: 2 }}>
+              <Typography color="textSecondary" variant="body2">Citizens</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{stats.citizens}</Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={4} md={3} lg={2}>
           <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Citizens
-              </Typography>
-              <Typography variant="h4" component="h2" color="primary.main">
-                {users.filter(u => u.role === 'citizen').length}
-              </Typography>
+            <CardContent sx={{ py: 2 }}>
+              <Typography color="textSecondary" variant="body2">Mobile Users</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'info.main' }}>{stats.mobileUsers}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={3} lg={2}>
+          <Card>
+            <CardContent sx={{ py: 2 }}>
+              <Typography color="textSecondary" variant="body2">Admins</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'error.main' }}>{stats.admins}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} sm={4} md={3} lg={2}>
+          <Card>
+            <CardContent sx={{ py: 2 }}>
+              <Typography color="textSecondary" variant="body2">Blocked</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'error.main' }}>{stats.blocked}</Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
+      {/* Search and Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>Search & Filter</Typography>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
+              }}
+            />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Role</InputLabel>
+              <Select value={roleFilter} label="Role" onChange={(e) => setRoleFilter(e.target.value)}>
+                <MenuItem value="all">All Roles</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="moderator">Moderator</MenuItem>
+                <MenuItem value="citizen">Citizen</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Status</InputLabel>
+              <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="blocked">Blocked</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Source</InputLabel>
+              <Select value={sourceFilter} label="Source" onChange={(e) => setSourceFilter(e.target.value)}>
+                <MenuItem value="all">All Sources</MenuItem>
+                <MenuItem value="mobile_app">Mobile App</MenuItem>
+                <MenuItem value="web_portal">Web Portal</MenuItem>
+                <MenuItem value="admin_created">Admin Created</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                setRoleFilter('all');
+                setStatusFilter('all');
+                setSourceFilter('all');
+              }}
+            >
+              Clear Filters
+            </Button>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Showing {filteredUsers.length} of {users.length} users
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* Users Data Grid */}
       <Card>
         <Box height={600}>
           <DataGrid
-            rows={users}
+            rows={filteredUsers}
             columns={columns}
             loading={loading}
             pageSize={25}
-            rowsPerPageOptions={[10, 25, 50]}
+            rowsPerPageOptions={[10, 25, 50, 100]}
             components={{ Toolbar: GridToolbar }}
             sx={{ 
               '& .MuiDataGrid-row:hover': {
@@ -526,7 +796,9 @@ const UsersPage = () => {
           setEditData({
             role: selectedUser?.role || 'citizen',
             status: selectedUser?.status || 'active',
-            displayName: selectedUser?.displayName || ''
+            displayName: selectedUser?.displayName || '',
+            phone: selectedUser?.phone || '',
+            notificationsEnabled: selectedUser?.notificationsEnabled !== false
           });
           setEditDialogOpen(true);
           setAnchorEl(null);
@@ -536,13 +808,7 @@ const UsersPage = () => {
         </MenuItem>
         <MenuItem onClick={() => {
           const newStatus = selectedUser?.status === 'active' ? 'blocked' : 'active';
-          setUsers(users.map(user => 
-            user.id === selectedUser?.id 
-              ? { ...user, status: newStatus }
-              : user
-          ));
-          showAlert(`User ${newStatus === 'active' ? 'activated' : 'blocked'} successfully!`, 'success');
-          setAnchorEl(null);
+          handleToggleUserStatus(selectedUser, newStatus);
         }}>
           <ListItemIcon>
             {selectedUser?.status === 'active' ? <BlockIcon /> : <ActivateIcon />}
@@ -567,14 +833,14 @@ const UsersPage = () => {
           <Stack spacing={3} sx={{ pt: 2 }}>
             <TextField
               fullWidth
-              label="Email"
+              label="Email *"
               type="email"
               value={newUser.email}
               onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
             />
             <TextField
               fullWidth
-              label="Display Name"
+              label="Display Name *"
               value={newUser.displayName}
               onChange={(e) => setNewUser({ ...newUser, displayName: e.target.value })}
             />
@@ -619,6 +885,12 @@ const UsersPage = () => {
               value={editData.displayName}
               onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
             />
+            <TextField
+              fullWidth
+              label="Phone"
+              value={editData.phone}
+              onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+            />
             <FormControl fullWidth>
               <InputLabel>Role</InputLabel>
               <Select value={editData.role} label="Role" onChange={(e) => setEditData({ ...editData, role: e.target.value })}>
@@ -647,8 +919,11 @@ const UsersPage = () => {
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This action cannot be undone. All user data and associated content will be permanently deleted.
+          </Alert>
           <Typography>
-            Are you sure you want to delete user "{selectedUser?.email}"? This action cannot be undone.
+            Are you sure you want to delete user <strong>"{selectedUser?.email}"</strong>?
           </Typography>
         </DialogContent>
         <DialogActions>

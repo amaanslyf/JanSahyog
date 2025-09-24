@@ -65,7 +65,7 @@ const MyComplaintScreen = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const router = useRouter();
-    
+
     const [issues, setIssues] = useState<UserIssue[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +92,7 @@ const MyComplaintScreen = () => {
                     lastUpdated: data.lastUpdated || data.reportedAt || Timestamp.now(),
                 } as UserIssue);
             });
-            
+
             setIssues(userIssues);
             setLoading(false);
             setRefreshing(false);
@@ -127,16 +127,6 @@ const MyComplaintScreen = () => {
         }
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'Critical': return '#DC2626';
-            case 'High': return '#EA580C';
-            case 'Medium': return '#2563EB';
-            case 'Low': return '#059669';
-            default: return '#6B7280';
-        }
-    };
-
     const formatDate = (timestamp: Timestamp) => {
         try {
             return timestamp.toDate().toLocaleDateString('en-US', {
@@ -157,8 +147,8 @@ const MyComplaintScreen = () => {
             `Status: ${issue.status}\nDepartment: ${issue.assignedDepartment || 'Not assigned'}\n\n${issue.description}${issue.adminNotes ? `\n\nAdmin Notes: ${issue.adminNotes}` : ''}`,
             [
                 { text: 'OK' },
-                ...(issue.location ? [{ 
-                    text: 'View Location', 
+                ...(issue.location ? [{
+                    text: 'View Location',
                     onPress: () => {
                         // Open in maps app
                         const url = `https://maps.google.com/?q=${issue.location!.latitude},${issue.location!.longitude}`;
@@ -176,19 +166,18 @@ const MyComplaintScreen = () => {
 
     const renderIssue = ({ item }: { item: UserIssue }) => {
         const statusStyle = getStatusStyle(item.status);
-        const priorityColor = getPriorityColor(item.priority);
 
         return (
             <TouchableOpacity style={styles.issueCard} onPress={() => handleIssuePress(item)}>
                 {/* Issue Image */}
                 {item.imageBase64 || item.imageUri ? (
-                    <Image 
-                        source={{ 
-                            uri: item.imageBase64 ? 
-                                `data:image/jpeg;base64,${item.imageBase64}` : 
-                                item.imageUri 
-                        }} 
-                        style={styles.issueImage} 
+                    <Image
+                        source={{
+                            uri: item.imageBase64 ?
+                                `data:image/jpeg;base64,${item.imageBase64}` :
+                                item.imageUri
+                        }}
+                        style={styles.issueImage}
                     />
                 ) : (
                     <View style={styles.imagePlaceholder}>
@@ -199,23 +188,10 @@ const MyComplaintScreen = () => {
                 <View style={styles.issueDetails}>
                     {/* Header */}
                     <View style={styles.issueHeader}>
-                        <Text style={styles.issueTitle} numberOfLines={1}>
-                            {item.title}
-                        </Text>
+                        <Text style={styles.categoryText}>{item.category}</Text>
                         <View style={[styles.statusBadge, statusStyle.container]}>
                             <Text style={[styles.statusText, statusStyle.text]}>
                                 {item.status}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* Category and Priority */}
-                    <View style={styles.issueMetadata}>
-                        <Text style={styles.categoryText}>{item.category}</Text>
-                        <View style={styles.priorityContainer}>
-                            <View style={[styles.priorityDot, { backgroundColor: priorityColor }]} />
-                            <Text style={[styles.priorityText, { color: priorityColor }]}>
-                                {item.priority}
                             </Text>
                         </View>
                     </View>
@@ -243,7 +219,7 @@ const MyComplaintScreen = () => {
                                 {formatDate(item.reportedAt)}
                             </Text>
                         </View>
-                        
+
                         {item.location && (
                             <View style={styles.locationContainer}>
                                 <IconMapPin />
@@ -281,7 +257,7 @@ const MyComplaintScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            
+
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Reports</Text>
@@ -323,13 +299,13 @@ const MyComplaintScreen = () => {
                         {filter === 'all' ? 'No Reports Yet' : `No ${filter.replace('-', ' ')} reports`}
                     </Text>
                     <Text style={styles.emptyText}>
-                        {filter === 'all' 
+                        {filter === 'all'
                             ? 'Start by reporting a civic issue in your area'
                             : `You don't have any ${filter.replace('-', ' ')} reports`
                         }
                     </Text>
                     {filter === 'all' && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.reportButton}
                             onPress={() => router.push('/report')}
                         >
@@ -386,31 +362,34 @@ const styles = StyleSheet.create({
     },
     filterContainer: {
         flexDirection: 'row',
-        backgroundColor: 'white',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        backgroundColor: '#F9FAFB', // Use a lighter background for a subtle effect
+        paddingHorizontal: 8, // Reduced horizontal padding
+        paddingVertical: 12, // Increased vertical padding
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
+        justifyContent: 'space-around',
+        alignItems: 'center',
     },
     filterTab: {
         flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 4,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
         alignItems: 'center',
-        borderRadius: 6,
-        marginHorizontal: 2,
+        borderRadius: 20,
+        marginHorizontal: 4,
+        backgroundColor: '#E5E7EB', // Default tab background
     },
     filterTabActive: {
-        backgroundColor: '#EFF6FF',
+        backgroundColor: '#2563EB',
     },
     filterTabText: {
-        fontSize: 12,
-        color: '#6B7280',
+        fontSize: 14,
+        color: '#4B5563', // A slightly darker gray for better contrast
         fontWeight: '500',
         textAlign: 'center',
     },
     filterTabTextActive: {
-        color: '#2563EB',
+        color: 'white',
         fontWeight: '600',
     },
     listContainer: {
@@ -458,7 +437,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'flex-start',
     },
-    issueTitle: {
+    categoryText: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#1F2937',
@@ -491,30 +470,6 @@ const styles = StyleSheet.create({
     },
     statusResolvedText: {
         color: '#065F46',
-    },
-    issueMetadata: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    categoryText: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '500',
-    },
-    priorityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    priorityDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    priorityText: {
-        fontSize: 12,
-        fontWeight: '500',
     },
     issueDescription: {
         fontSize: 14,

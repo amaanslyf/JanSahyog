@@ -13,44 +13,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useFirebase } from '../src/hooks/useFirebase';
+import { collection, getDocs, query, where, getCountFromServer } from 'firebase/firestore';
+
+import { IconShield, IconCamera, IconUsers, IconTrendingUp } from '../src/components/Icons';
+import { colors } from '../src/styles/colors';
+import { typography } from '../src/styles/typography';
 
 const { width, height } = Dimensions.get('window');
-
-// Enhanced SVG Icons
-const IconShield = ({ size = 80 }: { size?: number }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </Svg>
-);
-
-const IconCamera = ({ size = 48 }: { size?: number }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0-2-2h-3l-2.5-3z" />
-        <Circle cx="12" cy="13" r="3" />
-    </Svg>
-);
-
-const IconUsers = ({ size = 48 }: { size?: number }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <Circle cx="9" cy="7" r="4" />
-        <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </Svg>
-);
-
-const IconTrendingUp = ({ size = 48 }: { size?: number }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <Polyline points="17 6 23 6 23 12" />
-    </Svg>
-);
 
 const WelcomeScreen = () => {
     const router = useRouter();
     const { t } = useTranslation();
+    const { db } = useFirebase();
     const [currentFeature, setCurrentFeature] = useState(0);
-    
+    const [stats, setStats] = useState({
+        issues: 0,
+        citizens: 0,
+        cities: 1 // Starting with 1 city :)
+    });
+
     // Animation values
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
@@ -66,19 +48,19 @@ const WelcomeScreen = () => {
             icon: <IconCamera />,
             title: "Report Issues",
             description: "Take photos and report civic problems in your area instantly.",
-            color: "#10B981"
+            color: colors.success
         },
         {
             icon: <IconUsers />,
-            title: "Track Progress", 
+            title: "Track Progress",
             description: "Monitor the status of your reports and see real-time updates.",
-            color: "#8B5CF6"
+            color: colors.accent
         },
         {
             icon: <IconTrendingUp />,
             title: "Make Impact",
             description: "Earn points, climb the leaderboard, and make your city better.",
-            color: "#F59E0B"
+            color: colors.gold
         }
     ];
 
@@ -128,6 +110,30 @@ const WelcomeScreen = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Fetch real stats
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const issuesCol = collection(db, 'civicIssues');
+                const usersCol = collection(db, 'users');
+
+                const [issuesSnap, usersSnap] = await Promise.all([
+                    getCountFromServer(issuesCol),
+                    getCountFromServer(usersCol)
+                ]);
+
+                setStats({
+                    issues: issuesSnap.data().count,
+                    citizens: usersSnap.data().count,
+                    cities: 1 // For now
+                });
+            } catch (error) {
+                console.error('Error fetching welcome stats:', error);
+            }
+        };
+        fetchStats();
+    }, [db]);
+
     const handlePress = () => {
         router.replace('/login');
     };
@@ -135,13 +141,13 @@ const WelcomeScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            
-            <ScrollView 
+
+            <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Header Section */}
-                <Animated.View 
+                <Animated.View
                     style={[
                         styles.header,
                         {
@@ -157,7 +163,7 @@ const WelcomeScreen = () => {
                         <IconShield />
                         <View style={styles.iconGlow} />
                     </View>
-                    
+
                     <Text style={styles.title}>JanSahyog</Text>
                     <Text style={styles.subtitle}>
                         Your Voice, Your City, Your Impact
@@ -198,27 +204,27 @@ const WelcomeScreen = () => {
                 </View>
 
                 {/* Stats Section */}
-                <Animated.View 
+                <Animated.View
                     style={[styles.statsContainer, { opacity: fadeAnim }]}
                 >
                     <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>10K+</Text>
-                        <Text style={styles.statLabel}>Issues Resolved</Text>
+                        <Text style={styles.statNumber}>{stats.issues > 0 ? `${stats.issues}+` : '---'}</Text>
+                        <Text style={styles.statLabel}>Issues Managed</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>50K+</Text>
+                        <Text style={styles.statNumber}>{stats.citizens > 0 ? `${stats.citizens}+` : '---'}</Text>
                         <Text style={styles.statLabel}>Active Citizens</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>100+</Text>
-                        <Text style={styles.statLabel}>Cities</Text>
+                        <Text style={styles.statNumber}>{stats.cities}</Text>
+                        <Text style={styles.statLabel}>City</Text>
                     </View>
                 </Animated.View>
 
                 {/* CTA Section */}
-                <Animated.View 
+                <Animated.View
                     style={[
                         styles.ctaContainer,
                         {
@@ -233,7 +239,7 @@ const WelcomeScreen = () => {
                             <Text style={styles.arrowText}>→</Text>
                         </View>
                     </TouchableOpacity>
-                    
+
                     <Text style={styles.ctaSubtext}>
                         Join the movement • Free forever • Make a difference
                     </Text>
@@ -253,7 +259,7 @@ const WelcomeScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.background,
     },
     scrollContent: {
         flexGrow: 1,
@@ -275,30 +281,26 @@ const styles = StyleSheet.create({
         left: -10,
         right: -10,
         bottom: -10,
-        backgroundColor: '#2563EB',
+        backgroundColor: colors.primary,
         opacity: 0.1,
         borderRadius: 50,
         transform: [{ scale: 1.2 }],
     },
     title: {
+        ...typography.h1,
         fontSize: 36,
-        fontWeight: 'bold',
-        color: '#1E293B',
         marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 18,
-        color: '#2563EB',
-        fontWeight: '600',
+        ...typography.h3,
+        color: colors.primary,
         marginBottom: 16,
         textAlign: 'center',
     },
     description: {
-        fontSize: 16,
-        color: '#64748B',
+        ...typography.body,
         textAlign: 'center',
-        lineHeight: 24,
         paddingHorizontal: 20,
     },
     featuresContainer: {
@@ -306,11 +308,11 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     featureCard: {
-        backgroundColor: 'white',
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 24,
         alignItems: 'center',
-        shadowColor: '#0F172A',
+        shadowColor: colors.textPrimary,
         shadowOffset: {
             width: 0,
             height: 2,
@@ -319,10 +321,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 3,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
     },
     activeFeatureCard: {
-        borderColor: '#2563EB',
+        borderColor: colors.primary,
         borderWidth: 2,
         transform: [{ scale: 1.02 }],
     },
@@ -332,27 +334,24 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     featureTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1E293B',
+        ...typography.h3,
         marginBottom: 8,
         textAlign: 'center',
     },
     featureDescription: {
-        fontSize: 16,
-        color: '#64748B',
+        ...typography.bodySmall,
         textAlign: 'center',
         lineHeight: 22,
     },
     statsContainer: {
         flexDirection: 'row',
-        backgroundColor: 'white',
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 24,
         marginBottom: 40,
         alignItems: 'center',
         justifyContent: 'space-around',
-        shadowColor: '#0F172A',
+        shadowColor: colors.textPrimary,
         shadowOffset: {
             width: 0,
             height: 4,
@@ -366,20 +365,19 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     statNumber: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#2563EB',
+        ...typography.h2,
+        color: colors.primary,
         marginBottom: 4,
     },
     statLabel: {
+        ...typography.caption,
         fontSize: 14,
-        color: '#64748B',
         textAlign: 'center',
     },
     statDivider: {
         width: 1,
         height: 40,
-        backgroundColor: '#E2E8F0',
+        backgroundColor: colors.border,
         marginHorizontal: 16,
     },
     ctaContainer: {
@@ -387,14 +385,14 @@ const styles = StyleSheet.create({
         paddingTop: 20,
     },
     primaryButton: {
-        backgroundColor: '#2563EB',
+        backgroundColor: colors.primary,
         paddingVertical: 18,
         paddingHorizontal: 32,
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        shadowColor: '#2563EB',
+        shadowColor: colors.primary,
         shadowOffset: {
             width: 0,
             height: 8,
@@ -405,21 +403,20 @@ const styles = StyleSheet.create({
         minWidth: width * 0.6,
     },
     primaryButtonText: {
-        color: '#FFFFFF',
+        ...typography.button,
         fontSize: 18,
-        fontWeight: 'bold',
     },
     buttonArrow: {
         marginLeft: 8,
     },
     arrowText: {
-        color: '#FFFFFF',
+        color: colors.white,
         fontSize: 18,
         fontWeight: 'bold',
     },
     ctaSubtext: {
+        ...typography.caption,
         fontSize: 14,
-        color: '#94A3B8',
         textAlign: 'center',
         marginTop: 16,
         fontStyle: 'italic',
@@ -440,21 +437,21 @@ const styles = StyleSheet.create({
     decoration1: {
         width: 200,
         height: 200,
-        backgroundColor: '#2563EB',
+        backgroundColor: colors.primary,
         top: -100,
         right: -100,
     },
     decoration2: {
         width: 150,
         height: 150,
-        backgroundColor: '#10B981',
+        backgroundColor: colors.success,
         bottom: 100,
         left: -75,
     },
     decoration3: {
         width: 100,
         height: 100,
-        backgroundColor: '#F59E0B',
+        backgroundColor: colors.gold,
         top: height * 0.4,
         right: -50,
     },

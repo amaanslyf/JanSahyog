@@ -11,6 +11,7 @@ import {
     ScrollView,
     Image,
     Modal,
+    Linking,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -19,35 +20,10 @@ import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore
 import { useAuth } from '../src/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import Svg, { Path, Circle, Polyline,Line } from 'react-native-svg';
-
-// Icons
-const IconMapPin = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <Circle cx="12" cy="10" r="3" />
-    </Svg>
-);
-
-const IconRefresh = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Polyline points="23 4 23 10 17 10" />
-        <Path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-    </Svg>
-);
-
-const IconFilter = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-    </Svg>
-);
-
-const IconX = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Line x1="18" y1="6" x2="6" y2="18" />
-        <Line x1="6" y1="6" x2="18" y2="18" />
-    </Svg>
-);
+import { IconMapPin, IconRefresh, IconFilter, IconX } from '../src/components/Icons';
+import { colors } from '../src/styles/colors';
+import { typography } from '../src/styles/typography';
+import { moderateScale, scale, verticalScale } from '../src/utils/responsive';
 
 type NearbyIssue = {
     id: string;
@@ -82,7 +58,7 @@ const NearbyIssuesScreen = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const router = useRouter();
-    
+
     const [issues, setIssues] = useState<NearbyIssue[]>([]);
     const [loading, setLoading] = useState(true);
     const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
@@ -90,7 +66,7 @@ const NearbyIssuesScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [filterModalVisible, setFilterModalVisible] = useState(false);
     const [mapRegion, setMapRegion] = useState<Region | null>(null);
-    
+
     const [filters, setFilters] = useState<FilterOptions>({
         status: ['Open', 'In Progress'],
         categories: [],
@@ -117,8 +93,8 @@ const NearbyIssuesScreen = () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
                 Alert.alert(
-                    'Location Permission Required',
-                    'Please enable location services to view nearby issues.'
+                    t('nearbyIssues.locationPermissionRequired'),
+                    t('nearbyIssues.locationPermissionMessage')
                 );
                 return;
             }
@@ -126,7 +102,7 @@ const NearbyIssuesScreen = () => {
             const location = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.High,
             });
-            
+
             setUserLocation(location);
             setMapRegion({
                 latitude: location.coords.latitude,
@@ -136,7 +112,7 @@ const NearbyIssuesScreen = () => {
             });
         } catch (error) {
             console.error('Error getting location:', error);
-            Alert.alert('Error', 'Failed to get your current location.');
+            Alert.alert(t('nearbyIssues.errorTitle'), t('nearbyIssues.locationError'));
         }
     };
 
@@ -145,8 +121,8 @@ const NearbyIssuesScreen = () => {
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     };
@@ -157,7 +133,7 @@ const NearbyIssuesScreen = () => {
         setLoading(true);
         try {
             const issuesRef = collection(db, 'civicIssues');
-            
+
             // Basic query - we'll filter by location client-side
             const issuesQuery = query(
                 issuesRef,
@@ -194,19 +170,19 @@ const NearbyIssuesScreen = () => {
             let filteredIssues = allIssues;
 
             if (filters.status.length > 0) {
-                filteredIssues = filteredIssues.filter(issue => 
+                filteredIssues = filteredIssues.filter(issue =>
                     filters.status.includes(issue.status)
                 );
             }
 
             if (filters.categories.length > 0) {
-                filteredIssues = filteredIssues.filter(issue => 
+                filteredIssues = filteredIssues.filter(issue =>
                     filters.categories.includes(issue.category)
                 );
             }
 
             if (filters.priority.length > 0) {
-                filteredIssues = filteredIssues.filter(issue => 
+                filteredIssues = filteredIssues.filter(issue =>
                     filters.priority.includes(issue.priority)
                 );
             }
@@ -217,7 +193,7 @@ const NearbyIssuesScreen = () => {
             setIssues(filteredIssues);
         } catch (error) {
             console.error('Error loading nearby issues:', error);
-            Alert.alert('Error', 'Failed to load nearby issues.');
+            Alert.alert(t('nearbyIssues.errorTitle'), t('nearbyIssues.errorLoading'));
         } finally {
             setLoading(false);
         }
@@ -226,13 +202,13 @@ const NearbyIssuesScreen = () => {
     const getMarkerColor = (issue: NearbyIssue) => {
         switch (issue.status) {
             case 'Open':
-                return '#EF4444'; // Red
+                return colors.error;
             case 'In Progress':
-                return '#F59E0B'; // Yellow
+                return colors.warning;
             case 'Resolved':
-                return '#10B981'; // Green
+                return colors.success;
             default:
-                return '#6B7280'; // Gray
+                return colors.textMuted;
         }
     };
 
@@ -245,7 +221,7 @@ const NearbyIssuesScreen = () => {
                 minute: '2-digit'
             });
         } catch {
-            return 'Unknown date';
+            return t('myComplaints.unknownDate');
         }
     };
 
@@ -260,7 +236,7 @@ const NearbyIssuesScreen = () => {
             const newArray = currentArray.includes(value)
                 ? currentArray.filter(item => item !== value)
                 : [...currentArray, value];
-            
+
             return {
                 ...prev,
                 [filterType]: newArray
@@ -284,13 +260,13 @@ const NearbyIssuesScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            
+
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={styles.backButton}>← Back</Text>
+                    <Text style={styles.backButton}>{t('nearbyIssues.back')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Nearby Issues</Text>
+                <Text style={styles.headerTitle}>{t('nearbyIssues.title')}</Text>
                 <View style={styles.headerActions}>
                     <TouchableOpacity
                         style={styles.headerButton}
@@ -314,7 +290,7 @@ const NearbyIssuesScreen = () => {
             {loading && (
                 <View style={styles.loadingOverlay}>
                     <ActivityIndicator size="large" color="#2563EB" />
-                    <Text style={styles.loadingText}>Loading nearby issues...</Text>
+                    <Text style={styles.loadingText}>{t('nearbyIssues.loading')}</Text>
                 </View>
             )}
 
@@ -343,10 +319,10 @@ const NearbyIssuesScreen = () => {
             {/* Stats Bar */}
             <View style={styles.statsBar}>
                 <Text style={styles.statsText}>
-                    {issues.length} issues within {filters.radius}km
+                    {t('nearbyIssues.stats', { count: issues.length, radius: filters.radius })}
                 </Text>
                 <Text style={styles.statsSubtext}>
-                    Tap markers for details
+                    {t('nearbyIssues.tapMarkers')}
                 </Text>
             </View>
 
@@ -376,8 +352,8 @@ const NearbyIssuesScreen = () => {
                                     {(selectedIssue.imageBase64 || selectedIssue.imageUri) && (
                                         <Image
                                             source={{
-                                                uri: selectedIssue.imageBase64 ? 
-                                                    `data:image/jpeg;base64,${selectedIssue.imageBase64}` : 
+                                                uri: selectedIssue.imageBase64 ?
+                                                    `data:image/jpeg;base64,${selectedIssue.imageBase64}` :
                                                     selectedIssue.imageUri
                                             }}
                                             style={styles.modalImage}
@@ -388,12 +364,12 @@ const NearbyIssuesScreen = () => {
                                     <View style={styles.modalStatusContainer}>
                                         <View style={[styles.statusBadge, getStatusStyle(selectedIssue.status).container]}>
                                             <Text style={[styles.statusText, getStatusStyle(selectedIssue.status).text]}>
-                                                {selectedIssue.status}
+                                                {t(`status.${selectedIssue.status.toLowerCase().replace(' ', '')}`)}
                                             </Text>
                                         </View>
-                                        <Text style={styles.modalCategory}>{selectedIssue.category}</Text>
+                                        <Text style={styles.modalCategory}>{t(`categories.${selectedIssue.category.toLowerCase().replace(' ', '')}`)}</Text>
                                         <Text style={styles.modalPriority}>
-                                            Priority: {selectedIssue.priority}
+                                            {t('nearbyIssues.priorityLabel', { priority: t(`priorities.${selectedIssue.priority.toLowerCase()}`) })}
                                         </Text>
                                     </View>
 
@@ -403,21 +379,21 @@ const NearbyIssuesScreen = () => {
                                     {/* Details */}
                                     <View style={styles.modalDetails}>
                                         <Text style={styles.modalDetailItem}>
-                                            📍 Distance: {selectedIssue.distance?.toFixed(1)}km away
+                                            {t('nearbyIssues.distanceLabel', { distance: selectedIssue.distance?.toFixed(1) })}
                                         </Text>
                                         <Text style={styles.modalDetailItem}>
-                                            📅 Reported: {formatDate(selectedIssue.reportedAt)}
+                                            {t('nearbyIssues.reportedLabel', { date: formatDate(selectedIssue.reportedAt) })}
                                         </Text>
                                         <Text style={styles.modalDetailItem}>
-                                            📧 Reporter: {selectedIssue.reportedBy || 'Anonymous'}
+                                            {t('nearbyIssues.reporterLabel', { name: selectedIssue.reportedBy || t('nearbyIssues.anonymous') })}
                                         </Text>
                                         {selectedIssue.assignedDepartment && (
                                             <Text style={styles.modalDetailItem}>
-                                                🏢 Department: {selectedIssue.assignedDepartment}
+                                                {t('nearbyIssues.departmentLabel', { name: selectedIssue.assignedDepartment })}
                                             </Text>
                                         )}
                                         <Text style={styles.modalDetailItem}>
-                                            📍 Address: {selectedIssue.location.address}
+                                            {t('nearbyIssues.addressLabel', { address: selectedIssue.location.address })}
                                         </Text>
                                     </View>
                                 </ScrollView>
@@ -425,14 +401,17 @@ const NearbyIssuesScreen = () => {
                                 <View style={styles.modalActions}>
                                     <TouchableOpacity
                                         style={styles.modalButton}
-                                        onPress={() => {
-                                            // Open in maps
-                                            const url = `https://maps.google.com/?q=${selectedIssue.location.latitude},${selectedIssue.location.longitude}`;
-                                            // You can use Linking.openURL(url) here
-                                            Alert.alert('Navigation', 'Would open in Google Maps');
+                                        onPress={async () => {
+                                            const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedIssue.location.latitude},${selectedIssue.location.longitude}`;
+                                            const canOpen = await Linking.canOpenURL(url);
+                                            if (canOpen) {
+                                                Linking.openURL(url);
+                                            } else {
+                                                Alert.alert(t('nearbyIssues.errorTitle'), t('issueDetail.navigationError'));
+                                            }
                                         }}
                                     >
-                                        <Text style={styles.modalButtonText}>Get Directions</Text>
+                                        <Text style={styles.modalButtonText}>{t('issueDetail.getDirections')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             </>
@@ -451,7 +430,7 @@ const NearbyIssuesScreen = () => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.filterModalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Filter Issues</Text>
+                            <Text style={styles.modalTitle}>{t('nearbyIssues.filterTitle')}</Text>
                             <TouchableOpacity
                                 onPress={() => setFilterModalVisible(false)}
                                 style={styles.modalCloseButton}
@@ -463,7 +442,7 @@ const NearbyIssuesScreen = () => {
                         <ScrollView style={styles.filterBody}>
                             {/* Radius Filter */}
                             <View style={styles.filterSection}>
-                                <Text style={styles.filterSectionTitle}>Search Radius</Text>
+                                <Text style={styles.filterSectionTitle}>{t('nearbyIssues.radiusLabel')}</Text>
                                 <View style={styles.radiusButtons}>
                                     {[1, 2, 5, 10].map(radius => (
                                         <TouchableOpacity
@@ -570,13 +549,13 @@ const NearbyIssuesScreen = () => {
                                     });
                                 }}
                             >
-                                <Text style={styles.clearFiltersText}>Clear All</Text>
+                                <Text style={styles.clearFiltersText}>{t('nearbyIssues.clearAll')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.applyFiltersButton}
                                 onPress={() => setFilterModalVisible(false)}
                             >
-                                <Text style={styles.applyFiltersText}>Apply Filters</Text>
+                                <Text style={styles.applyFiltersText}>{t('nearbyIssues.applyFilters')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -589,35 +568,34 @@ const NearbyIssuesScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#2563EB',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 16,
+        backgroundColor: colors.primary,
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(12),
     },
     backButton: {
-        color: 'white',
-        fontSize: 16,
+        color: colors.white,
+        fontSize: moderateScale(16),
         fontWeight: '500',
     },
     headerTitle: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: 'bold',
+        ...typography.h3,
+        fontSize: moderateScale(18),
+        color: colors.white,
     },
     headerActions: {
         flexDirection: 'row',
-        gap: 8,
+        gap: moderateScale(8),
     },
     headerButton: {
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        padding: 8,
-        borderRadius: 8,
+        padding: moderateScale(8),
+        borderRadius: moderateScale(8),
     },
     loadingOverlay: {
         position: 'absolute',
@@ -629,88 +607,87 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
-        gap: 12,
+        gap: moderateScale(12),
     },
     loadingText: {
-        fontSize: 16,
-        color: '#6B7280',
+        ...typography.body,
+        fontSize: moderateScale(16),
+        color: colors.textMuted,
     },
     map: {
         flex: 1,
     },
     statsBar: {
-        backgroundColor: 'white',
-        padding: 12,
+        backgroundColor: colors.surface,
+        padding: moderateScale(12),
         borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
+        borderTopColor: colors.border,
         alignItems: 'center',
     },
     statsText: {
-        fontSize: 14,
+        ...typography.body,
+        fontSize: moderateScale(15),
         fontWeight: 'bold',
-        color: '#1F2937',
     },
     statsSubtext: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginTop: 2,
+        ...typography.caption,
+        fontSize: moderateScale(12),
+        marginTop: moderateScale(2),
     },
-    // Modal Styles
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: moderateScale(20),
+        borderTopRightRadius: moderateScale(20),
         maxHeight: '80%',
     },
     filterModalContent: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: moderateScale(20),
+        borderTopRightRadius: moderateScale(20),
         maxHeight: '90%',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
+        padding: moderateScale(20),
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: colors.border,
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1F2937',
+        ...typography.h3,
+        fontSize: moderateScale(18),
     },
     modalCloseButton: {
-        padding: 4,
+        padding: moderateScale(4),
     },
     modalBody: {
-        padding: 20,
+        padding: moderateScale(20),
     },
     modalImage: {
         width: '100%',
-        height: 200,
-        borderRadius: 12,
-        marginBottom: 16,
+        height: moderateScale(200),
+        borderRadius: moderateScale(12),
+        marginBottom: moderateScale(16),
     },
     modalStatusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
+        gap: moderateScale(12),
+        marginBottom: moderateScale(16),
     },
     statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingHorizontal: moderateScale(8),
+        paddingVertical: moderateScale(4),
+        borderRadius: moderateScale(12),
     },
     statusText: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontWeight: '600',
     },
     statusOpen: {
@@ -732,137 +709,135 @@ const styles = StyleSheet.create({
         color: '#065F46',
     },
     modalCategory: {
-        fontSize: 14,
-        color: '#6B7280',
+        ...typography.caption,
+        fontSize: moderateScale(13),
         fontWeight: '500',
     },
     modalPriority: {
-        fontSize: 14,
-        color: '#6B7280',
+        ...typography.caption,
+        fontSize: moderateScale(13),
     },
     modalDescription: {
-        fontSize: 16,
-        color: '#1F2937',
-        lineHeight: 22,
-        marginBottom: 20,
+        ...typography.body,
+        fontSize: moderateScale(15),
+        lineHeight: moderateScale(22),
+        marginBottom: moderateScale(20),
     },
     modalDetails: {
-        gap: 8,
+        gap: moderateScale(8),
     },
     modalDetailItem: {
-        fontSize: 14,
-        color: '#4B5563',
-        lineHeight: 20,
+        ...typography.caption,
+        fontSize: moderateScale(13),
+        lineHeight: moderateScale(20),
     },
     modalActions: {
-        padding: 20,
+        padding: moderateScale(20),
         borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
+        borderTopColor: colors.border,
     },
     modalButton: {
-        backgroundColor: '#2563EB',
-        paddingVertical: 12,
-        borderRadius: 8,
+        backgroundColor: colors.primary,
+        paddingVertical: moderateScale(12),
+        borderRadius: moderateScale(8),
         alignItems: 'center',
     },
     modalButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+        ...typography.button,
+        fontSize: moderateScale(16),
     },
-    // Filter Modal Styles
     filterBody: {
-        padding: 20,
+        padding: moderateScale(20),
     },
     filterSection: {
-        marginBottom: 24,
+        marginBottom: moderateScale(24),
     },
     filterSectionTitle: {
-        fontSize: 16,
+        ...typography.body,
+        fontSize: moderateScale(16),
         fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 12,
+        marginBottom: moderateScale(12),
     },
     radiusButtons: {
         flexDirection: 'row',
-        gap: 8,
+        gap: moderateScale(8),
     },
     radiusButton: {
         flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: moderateScale(8),
+        paddingHorizontal: moderateScale(12),
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 8,
+        borderColor: colors.border,
+        borderRadius: moderateScale(8),
         alignItems: 'center',
     },
     radiusButtonActive: {
-        backgroundColor: '#2563EB',
-        borderColor: '#2563EB',
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     radiusButtonText: {
-        fontSize: 14,
-        color: '#6B7280',
+        ...typography.caption,
+        fontSize: moderateScale(13),
         fontWeight: '500',
     },
     radiusButtonTextActive: {
-        color: 'white',
+        color: colors.white,
     },
     filterOptions: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: moderateScale(8),
     },
     filterOption: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
+        paddingVertical: moderateScale(6),
+        paddingHorizontal: moderateScale(12),
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 16,
+        borderColor: colors.border,
+        borderRadius: moderateScale(16),
     },
     filterOptionActive: {
         backgroundColor: '#EFF6FF',
-        borderColor: '#2563EB',
+        borderColor: colors.primary,
     },
     filterOptionText: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '500',
+        ...typography.caption,
+        fontSize: moderateScale(12),
     },
     filterOptionTextActive: {
-        color: '#2563EB',
+        color: colors.primary,
+        fontWeight: '600',
     },
     filterActions: {
         flexDirection: 'row',
-        padding: 20,
-        gap: 12,
+        padding: moderateScale(20),
+        gap: moderateScale(12),
         borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
+        borderTopColor: colors.border,
     },
     clearFiltersButton: {
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: moderateScale(12),
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 8,
+        borderColor: colors.border,
+        borderRadius: moderateScale(8),
         alignItems: 'center',
     },
     clearFiltersText: {
-        fontSize: 16,
-        color: '#6B7280',
+        ...typography.body,
+        fontSize: moderateScale(14),
+        color: colors.textMuted,
         fontWeight: '500',
     },
     applyFiltersButton: {
         flex: 2,
-        paddingVertical: 12,
-        backgroundColor: '#2563EB',
-        borderRadius: 8,
+        paddingVertical: moderateScale(12),
+        backgroundColor: colors.primary,
+        borderRadius: moderateScale(8),
         alignItems: 'center',
     },
     applyFiltersText: {
-        fontSize: 16,
-        color: 'white',
-        fontWeight: 'bold',
+        ...typography.button,
+        fontSize: moderateScale(16),
     },
 });
 

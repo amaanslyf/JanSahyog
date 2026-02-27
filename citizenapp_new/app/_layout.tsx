@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { ThemeProvider } from '../src/context/ThemeContext';
 import { ActivityIndicator, View } from 'react-native';
 import '../src/i18n/i18n'; // Initialize i18n
 
@@ -30,11 +31,11 @@ const InitialLayout = () => {
 
     if (isLoading) {
         return (
-            <View style={{ 
-                flex: 1, 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                backgroundColor: '#F9FAFB' 
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#F9FAFB'
             }}>
                 <ActivityIndicator size="large" color="#2563EB" />
             </View>
@@ -54,8 +55,10 @@ const InitialLayout = () => {
 
 export default function RootLayout() {
     return (
-        <AuthProvider>
-            <InitialLayout />
-        </AuthProvider>
+        <ThemeProvider>
+            <AuthProvider>
+                <InitialLayout />
+            </AuthProvider>
+        </ThemeProvider>
     );
 }

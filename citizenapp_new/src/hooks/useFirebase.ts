@@ -1,9 +1,11 @@
-// useFirebase.js - FIXED DUPLICATE TOKEN PREVENTION
-import { getApps, initializeApp } from "firebase/app";
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+// useFirebase.ts - FIXED DUPLICATE TOKEN PREVENTION
+import { FirebaseApp, getApps, initializeApp } from "firebase/app";
+import { Auth, initializeAuth } from 'firebase/auth';
+// @ts-ignore
+import { getReactNativePersistence } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from 'firebase/storage';
+import { Firestore, getFirestore } from "firebase/firestore";
+import { FirebaseStorage, getStorage } from 'firebase/storage';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
@@ -19,7 +21,7 @@ const firebaseConfig = {
     appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app;
+let app: FirebaseApp;
 if (!getApps().length) {
     app = initializeApp(firebaseConfig);
 } else {
@@ -27,11 +29,11 @@ if (!getApps().length) {
 }
 
 // Initialize services
-const auth = initializeAuth(app, {
+const auth: Auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
-const db = getFirestore(app);
-const storage = getStorage(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
 // Configure notifications with better settings
 Notifications.setNotificationHandler({
@@ -41,22 +43,31 @@ Notifications.setNotificationHandler({
             shouldShowAlert: true,
             shouldPlaySound: true,
             shouldSetBadge: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
         };
     },
 });
 
+export interface FirebaseServices {
+    auth: Auth;
+    db: Firestore;
+    storage: FirebaseStorage;
+    app: FirebaseApp;
+}
+
 // Enhanced hook with notifications support
-export function useFirebase() {
+export function useFirebase(): FirebaseServices {
     return { auth, db, storage, app };
 }
 
 // Global flags to prevent duplicate requests
 let isRequestingToken = false;
-let cachedToken = null;
-let pendingResolvers = []; // Promise-based queue instead of busy-wait
+let cachedToken: string | null = null;
+let pendingResolvers: Array<(token: string | null) => void> = [];
 
 // Expo Push Notification Registration with duplicate prevention
-export async function registerForPushNotificationsAsync() {
+export async function registerForPushNotificationsAsync(): Promise<string | null> {
     // Return cached token if available
     if (cachedToken) {
         return cachedToken;
@@ -68,8 +79,6 @@ export async function registerForPushNotificationsAsync() {
             pendingResolvers.push(resolve);
         });
     }
-
-    let token;
 
     try {
         isRequestingToken = true;
@@ -107,35 +116,33 @@ export async function registerForPushNotificationsAsync() {
             // Check existing permissions
             const { status: existingStatus } = await Notifications.getPermissionsAsync();
             let finalStatus = existingStatus;
-            
+
             // Request permissions if not granted
             if (existingStatus !== 'granted') {
                 const { status } = await Notifications.requestPermissionsAsync();
                 finalStatus = status;
             }
-            
+
             if (finalStatus !== 'granted') {
                 console.log('❌ Push notification permissions denied');
                 return null;
             }
-            
+
             try {
                 // Get the REAL Expo Push Token
                 const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-                
+
                 const tokenData = await Notifications.getExpoPushTokenAsync({
                     projectId: projectId,
                 });
-                
-                token = tokenData.data;
-                cachedToken = token;
-                return token;
-                
+
+                cachedToken = tokenData.data;
+                return cachedToken;
+
             } catch (e) {
                 console.error('Error getting Expo push token:', e);
-                
+
                 // Fallback: create a clearly-marked non-real identifier
-                // Uses FALLBACK_ prefix so it won't be confused with real tokens
                 const deviceId = Device.osInternalBuildId || Device.modelId || 'unknown';
                 const fallbackToken = `FALLBACK_${deviceId}_${Date.now()}`;
                 cachedToken = fallbackToken;
@@ -160,7 +167,7 @@ export async function registerForPushNotificationsAsync() {
 }
 
 // Enhanced test notification with better formatting
-export async function sendTestNotification(title, body, data = {}) {
+export async function sendTestNotification(title?: string, body?: string, data: Record<string, any> = {}) {
     try {
         await Notifications.scheduleNotificationAsync({
             content: {
@@ -183,7 +190,7 @@ export async function sendTestNotification(title, body, data = {}) {
 }
 
 // Get notification permissions status
-export async function getNotificationPermissions() {
+export async function getNotificationPermissions(): Promise<string> {
     try {
         const { status } = await Notifications.getPermissionsAsync();
         return status;
@@ -194,7 +201,7 @@ export async function getNotificationPermissions() {
 }
 
 // Schedule a notification for later
-export async function scheduleNotification(title, body, triggerDate, data = {}) {
+export async function scheduleNotification(title: string, body: string, triggerDate: Date, data: Record<string, any> = {}): Promise<string | null> {
     try {
         const identifier = await Notifications.scheduleNotificationAsync({
             content: {
@@ -204,8 +211,9 @@ export async function scheduleNotification(title, body, triggerDate, data = {}) 
                 sound: 'default',
             },
             trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
                 date: triggerDate,
-            },
+            } as Notifications.NotificationTriggerInput,
         });
         console.log('⏰ Notification scheduled with ID:', identifier);
         return identifier;
@@ -216,7 +224,7 @@ export async function scheduleNotification(title, body, triggerDate, data = {}) 
 }
 
 // Cancel a scheduled notification
-export async function cancelScheduledNotification(identifier) {
+export async function cancelScheduledNotification(identifier: string) {
     try {
         await Notifications.cancelScheduledNotificationAsync(identifier);
         console.log('🗑️ Scheduled notification cancelled:', identifier);

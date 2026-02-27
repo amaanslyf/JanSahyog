@@ -9,6 +9,8 @@ import {
     TouchableOpacity,
     RefreshControl,
     ActivityIndicator,
+    Platform,
+    ScrollView,
     StatusBar,
     Alert,
 } from 'react-native';
@@ -17,28 +19,10 @@ import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'fireba
 import { useAuth } from '../../src/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import Svg, { Path, Circle, Polyline } from 'react-native-svg';
-
-// Icons
-const IconClock = () => (
-    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Circle cx="12" cy="12" r="10" />
-        <Polyline points="12 6 12 12 16 14" />
-    </Svg>
-);
-
-const IconMapPin = () => (
-    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <Circle cx="12" cy="10" r="3" />
-    </Svg>
-);
-
-const IconMessageSquare = () => (
-    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </Svg>
-);
+import { IconClock, IconMapPin, IconMessageSquare } from '../../src/components/Icons';
+import { colors } from '../../src/styles/colors';
+import { typography } from '../../src/styles/typography';
+import { moderateScale, scale, verticalScale } from '../../src/utils/responsive';
 
 type UserIssue = {
     id: string;
@@ -65,7 +49,7 @@ const MyComplaintScreen = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const router = useRouter();
-    
+
     const [issues, setIssues] = useState<UserIssue[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +76,7 @@ const MyComplaintScreen = () => {
                     lastUpdated: data.lastUpdated || data.reportedAt || Timestamp.now(),
                 } as UserIssue);
             });
-            
+
             setIssues(userIssues);
             setLoading(false);
             setRefreshing(false);
@@ -117,11 +101,11 @@ const MyComplaintScreen = () => {
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'Open':
-                return { container: styles.statusOpen, text: styles.statusOpenText };
+                return { container: { backgroundColor: '#FEE2E2' }, text: { color: colors.error } };
             case 'In Progress':
-                return { container: styles.statusProgress, text: styles.statusProgressText };
+                return { container: { backgroundColor: '#FEF3C7' }, text: { color: colors.warning } };
             case 'Resolved':
-                return { container: styles.statusResolved, text: styles.statusResolvedText };
+                return { container: { backgroundColor: '#D1FAE5' }, text: { color: colors.success } };
             default:
                 return { container: {}, text: {} };
         }
@@ -147,26 +131,12 @@ const MyComplaintScreen = () => {
                 minute: '2-digit'
             });
         } catch {
-            return 'Unknown date';
+            return t('myComplaints.unknownDate');
         }
     };
 
     const handleIssuePress = (issue: UserIssue) => {
-        Alert.alert(
-            issue.title,
-            `Status: ${issue.status}\nDepartment: ${issue.assignedDepartment || 'Not assigned'}\n\n${issue.description}${issue.adminNotes ? `\n\nAdmin Notes: ${issue.adminNotes}` : ''}`,
-            [
-                { text: 'OK' },
-                ...(issue.location ? [{ 
-                    text: 'View Location', 
-                    onPress: () => {
-                        // Open in maps app
-                        const url = `https://maps.google.com/?q=${issue.location!.latitude},${issue.location!.longitude}`;
-                        // You can use Linking.openURL(url) here
-                    }
-                }] : [])
-            ]
-        );
+        router.push(`/IssueDetail/${issue.id}` as any);
     };
 
     const onRefresh = () => {
@@ -182,17 +152,17 @@ const MyComplaintScreen = () => {
             <TouchableOpacity style={styles.issueCard} onPress={() => handleIssuePress(item)}>
                 {/* Issue Image */}
                 {item.imageBase64 || item.imageUri ? (
-                    <Image 
-                        source={{ 
-                            uri: item.imageBase64 ? 
-                                `data:image/jpeg;base64,${item.imageBase64}` : 
-                                item.imageUri 
-                        }} 
-                        style={styles.issueImage} 
+                    <Image
+                        source={{
+                            uri: item.imageBase64 ?
+                                `data:image/jpeg;base64,${item.imageBase64}` :
+                                item.imageUri
+                        }}
+                        style={styles.issueImage}
                     />
                 ) : (
                     <View style={styles.imagePlaceholder}>
-                        <Text style={styles.imagePlaceholderText}>No Image</Text>
+                        <Text style={styles.imagePlaceholderText}>{t('myComplaints.noImage')}</Text>
                     </View>
                 )}
 
@@ -204,18 +174,20 @@ const MyComplaintScreen = () => {
                         </Text>
                         <View style={[styles.statusBadge, statusStyle.container]}>
                             <Text style={[styles.statusText, statusStyle.text]}>
-                                {item.status}
+                                {t(`status.${item.status.toLowerCase().replace(' ', '')}`)}
                             </Text>
                         </View>
                     </View>
 
                     {/* Category and Priority */}
                     <View style={styles.issueMetadata}>
-                        <Text style={styles.categoryText}>{item.category}</Text>
+                        <Text style={styles.categoryText}>
+                            {t(`categories.${item.category.toLowerCase().replace(' ', '')}`)}
+                        </Text>
                         <View style={styles.priorityContainer}>
                             <View style={[styles.priorityDot, { backgroundColor: priorityColor }]} />
                             <Text style={[styles.priorityText, { color: priorityColor }]}>
-                                {item.priority}
+                                {t(`priorities.${item.priority.toLowerCase()}`)}
                             </Text>
                         </View>
                     </View>
@@ -230,7 +202,7 @@ const MyComplaintScreen = () => {
                         <View style={styles.adminNotesContainer}>
                             <IconMessageSquare />
                             <Text style={styles.adminNotesText} numberOfLines={1}>
-                                Admin: {item.adminNotes}
+                                {t('myComplaints.adminLabel')}{item.adminNotes}
                             </Text>
                         </View>
                     )}
@@ -243,7 +215,7 @@ const MyComplaintScreen = () => {
                                 {formatDate(item.reportedAt)}
                             </Text>
                         </View>
-                        
+
                         {item.location && (
                             <View style={styles.locationContainer}>
                                 <IconMapPin />
@@ -257,7 +229,7 @@ const MyComplaintScreen = () => {
                     {/* Department */}
                     {item.assignedDepartment && (
                         <Text style={styles.departmentText}>
-                            Assigned to: {item.assignedDepartment}
+                            {t('myComplaints.assignedTo')}{item.assignedDepartment}
                         </Text>
                     )}
                 </View>
@@ -270,7 +242,7 @@ const MyComplaintScreen = () => {
             <SafeAreaView style={styles.container}>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#2563EB" />
-                    <Text style={styles.loadingText}>Loading your complaints...</Text>
+                    <Text style={styles.loadingText}>{t('myComplaints.loading')}</Text>
                 </View>
             </SafeAreaView>
         );
@@ -281,59 +253,67 @@ const MyComplaintScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            
+
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Reports</Text>
+                <Text style={styles.headerTitle}>{t('myComplaints.title')}</Text>
                 <Text style={styles.headerSubtitle}>
-                    Track your submitted civic issues
+                    {t('myComplaints.subtitle')}
                 </Text>
             </View>
 
             {/* Filter Tabs */}
-            <View style={styles.filterContainer}>
-                {[
-                    { key: 'all', label: 'All', count: issues.length },
-                    { key: 'open', label: 'Open', count: issues.filter(i => i.status === 'Open').length },
-                    { key: 'in-progress', label: 'In Progress', count: issues.filter(i => i.status === 'In Progress').length },
-                    { key: 'resolved', label: 'Resolved', count: issues.filter(i => i.status === 'Resolved').length },
-                ].map((tab) => (
-                    <TouchableOpacity
-                        key={tab.key}
-                        style={[
-                            styles.filterTab,
-                            filter === tab.key && styles.filterTabActive
-                        ]}
-                        onPress={() => setFilter(tab.key as any)}
-                    >
-                        <Text style={[
-                            styles.filterTabText,
-                            filter === tab.key && styles.filterTabTextActive
-                        ]}>
-                            {tab.label} ({tab.count})
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+            <View style={{ backgroundColor: colors.surface }}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filterScrollContent}
+                >
+                    {[
+                        { key: 'all', label: 'All', count: issues.length },
+                        { key: 'open', label: 'Open', count: issues.filter(i => i.status === 'Open').length },
+                        { key: 'in-progress', label: 'In Progress', count: issues.filter(i => i.status === 'In Progress').length },
+                        { key: 'resolved', label: 'Resolved', count: issues.filter(i => i.status === 'Resolved').length },
+                    ].map((tab) => (
+                        <TouchableOpacity
+                            key={tab.key}
+                            style={[
+                                styles.filterTab,
+                                filter === tab.key && styles.filterTabActive
+                            ]}
+                            onPress={() => setFilter(tab.key as any)}
+                        >
+                            <Text style={[
+                                styles.filterTabText,
+                                filter === tab.key && styles.filterTabTextActive
+                            ]}>
+                                {tab.label} ({tab.count})
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             </View>
 
             {/* Issues List */}
             {filteredIssues.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyTitle}>
-                        {filter === 'all' ? 'No Reports Yet' : `No ${filter.replace('-', ' ')} reports`}
+                        {filter === 'all'
+                            ? t('myComplaints.empty.title')
+                            : t('myComplaints.empty.titleWithFilter', { filter: filter.replace('-', ' ') })}
                     </Text>
                     <Text style={styles.emptyText}>
-                        {filter === 'all' 
-                            ? 'Start by reporting a civic issue in your area'
-                            : `You don't have any ${filter.replace('-', ' ')} reports`
+                        {filter === 'all'
+                            ? t('myComplaints.empty.subtitle')
+                            : t('myComplaints.empty.subtitleWithFilter', { filter: filter.replace('-', ' ') })
                         }
                     </Text>
                     {filter === 'all' && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.reportButton}
                             onPress={() => router.push('/report')}
                         >
-                            <Text style={styles.reportButtonText}>Report an Issue</Text>
+                            <Text style={styles.reportButtonText}>{t('myComplaints.empty.button')}</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -356,102 +336,102 @@ const MyComplaintScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: colors.background,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 12,
+        gap: moderateScale(12),
     },
     loadingText: {
-        fontSize: 16,
-        color: '#6B7280',
+        ...typography.body,
+        color: colors.textMuted,
+        fontSize: moderateScale(16),
     },
     header: {
-        backgroundColor: '#2563EB',
-        padding: 24,
-        paddingBottom: 20,
+        backgroundColor: colors.primary,
+        padding: moderateScale(24),
+        paddingBottom: moderateScale(20),
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'white',
-        marginBottom: 4,
+        ...typography.h2,
+        color: colors.white,
+        fontSize: moderateScale(24),
+        marginBottom: moderateScale(4),
     },
     headerSubtitle: {
-        fontSize: 16,
-        color: 'white',
+        ...typography.body,
+        color: colors.white,
         opacity: 0.9,
     },
-    filterContainer: {
-        flexDirection: 'row',
-        backgroundColor: 'white',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+    filterScrollContent: {
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(12),
+        backgroundColor: colors.surface,
     },
     filterTab: {
-        flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 4,
+        paddingVertical: moderateScale(8),
+        paddingHorizontal: moderateScale(16),
         alignItems: 'center',
-        borderRadius: 6,
-        marginHorizontal: 2,
+        borderRadius: moderateScale(20),
+        marginRight: moderateScale(8),
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     filterTabActive: {
         backgroundColor: '#EFF6FF',
+        borderColor: colors.primary,
     },
     filterTabText: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontWeight: '500',
+        ...typography.caption,
+        fontSize: moderateScale(13),
         textAlign: 'center',
+        color: colors.textMuted,
     },
     filterTabTextActive: {
-        color: '#2563EB',
-        fontWeight: '600',
+        color: colors.primary,
+        fontWeight: 'bold',
     },
     listContainer: {
-        padding: 16,
-        gap: 12,
+        padding: moderateScale(16),
+        gap: moderateScale(12),
     },
     issueCard: {
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 16,
+        backgroundColor: colors.surface,
+        borderRadius: moderateScale(12),
+        padding: moderateScale(16),
         flexDirection: 'row',
-        gap: 12,
+        gap: moderateScale(12),
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        shadowColor: '#000',
+        borderColor: colors.border,
+        shadowColor: colors.textPrimary,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 1,
     },
     issueImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 8,
+        width: moderateScale(80),
+        height: moderateScale(80),
+        borderRadius: moderateScale(8),
     },
     imagePlaceholder: {
-        width: 80,
-        height: 80,
-        borderRadius: 8,
+        width: moderateScale(80),
+        height: moderateScale(80),
+        borderRadius: moderateScale(8),
         backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
     },
     imagePlaceholderText: {
-        fontSize: 10,
-        color: '#9CA3AF',
+        ...typography.caption,
+        fontSize: moderateScale(10),
         textAlign: 'center',
     },
     issueDetails: {
         flex: 1,
-        gap: 6,
+        gap: moderateScale(6),
     },
     issueHeader: {
         flexDirection: 'row',
@@ -459,38 +439,21 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     issueTitle: {
-        fontSize: 16,
+        ...typography.body,
         fontWeight: 'bold',
-        color: '#1F2937',
+        fontSize: moderateScale(16),
+        color: colors.textPrimary,
         flex: 1,
-        marginRight: 8,
+        marginRight: moderateScale(8),
     },
     statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingHorizontal: moderateScale(8),
+        paddingVertical: moderateScale(4),
+        borderRadius: moderateScale(12),
     },
     statusText: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontWeight: '600',
-    },
-    statusOpen: {
-        backgroundColor: '#FEE2E2',
-    },
-    statusOpenText: {
-        color: '#991B1B',
-    },
-    statusProgress: {
-        backgroundColor: '#FEF3C7',
-    },
-    statusProgressText: {
-        color: '#92400E',
-    },
-    statusResolved: {
-        backgroundColor: '#D1FAE5',
-    },
-    statusResolvedText: {
-        color: '#065F46',
     },
     issueMetadata: {
         flexDirection: 'row',
@@ -498,39 +461,38 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     categoryText: {
-        fontSize: 12,
-        color: '#6B7280',
+        ...typography.caption,
         fontWeight: '500',
     },
     priorityContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: moderateScale(4),
     },
     priorityDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: moderateScale(6),
+        height: moderateScale(6),
+        borderRadius: moderateScale(3),
     },
     priorityText: {
-        fontSize: 12,
+        ...typography.caption,
         fontWeight: '500',
     },
     issueDescription: {
-        fontSize: 14,
-        color: '#4B5563',
-        lineHeight: 18,
+        ...typography.bodySmall,
+        lineHeight: moderateScale(18),
+        fontSize: moderateScale(13),
     },
     adminNotesContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: moderateScale(6),
         backgroundColor: '#F0FDF4',
-        padding: 8,
-        borderRadius: 6,
+        padding: moderateScale(8),
+        borderRadius: moderateScale(6),
     },
     adminNotesText: {
-        fontSize: 12,
+        ...typography.caption,
         color: '#166534',
         flex: 1,
         fontStyle: 'italic',
@@ -539,65 +501,58 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 4,
+        marginTop: moderateScale(4),
     },
     dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: moderateScale(4),
     },
     dateText: {
-        fontSize: 12,
-        color: '#9CA3AF',
+        ...typography.caption,
     },
     locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: moderateScale(4),
         flex: 1,
-        marginLeft: 8,
+        marginLeft: moderateScale(8),
     },
     locationText: {
-        fontSize: 12,
-        color: '#9CA3AF',
+        ...typography.caption,
         flex: 1,
     },
     departmentText: {
-        fontSize: 12,
-        color: '#2563EB',
+        ...typography.caption,
+        color: colors.primary,
         fontWeight: '500',
-        marginTop: 4,
+        marginTop: moderateScale(4),
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 32,
+        padding: moderateScale(32),
     },
     emptyTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 8,
+        ...typography.h3,
+        marginBottom: moderateScale(8),
         textAlign: 'center',
     },
     emptyText: {
-        fontSize: 16,
-        color: '#6B7280',
+        ...typography.body,
         textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 24,
+        lineHeight: moderateScale(22),
+        marginBottom: moderateScale(24),
     },
     reportButton: {
-        backgroundColor: '#2563EB',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
+        backgroundColor: colors.primary,
+        paddingHorizontal: moderateScale(24),
+        paddingVertical: moderateScale(12),
+        borderRadius: moderateScale(8),
     },
     reportButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+        ...typography.button,
     },
 });
 

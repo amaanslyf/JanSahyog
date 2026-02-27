@@ -1,52 +1,84 @@
-// src/services/notificationService.js - FIXED INFINITE INITIALIZATION
+// src/services/notificationService.ts - FIXED INFINITE INITIALIZATION
 import * as Notifications from 'expo-notifications';
-import { doc, updateDoc, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import {
+    Firestore,
+    updateDoc,
+    collection,
+    addDoc,
+    serverTimestamp,
+    onSnapshot,
+    query,
+    orderBy,
+    limit,
+    where,
+    getDocs,
+    writeBatch,
+    doc,
+    Unsubscribe
+} from 'firebase/firestore';
+import { Auth } from 'firebase/auth';
 import { registerForPushNotificationsAsync } from '../hooks/useFirebase';
 
+export interface NotificationPreferences {
+    issueUpdates: boolean;
+    generalNews: boolean;
+    emergencyAlerts: boolean;
+    departmentUpdates: boolean;
+    weeklyDigest: boolean;
+    enabled?: boolean;
+}
+
+export interface NotificationData {
+    title: string;
+    body: string;
+    data: Record<string, any>;
+    receivedAt: Date;
+    read: boolean;
+    type: string;
+}
+
 class NotificationService {
-    constructor(db, auth) {
+    private db: Firestore;
+    private auth: Auth;
+    private notificationListener: Notifications.Subscription | null = null;
+    private responseListener: Notifications.Subscription | null = null;
+    private badgeCountUnsubscribe: Unsubscribe | null = null;
+    private badgeCount: number = 0;
+    private isInitialized: boolean = false;
+    private isInitializing: boolean = false;
+    private currentUserId: string | null = null;
+
+    constructor(db: Firestore, auth: Auth) {
         this.db = db;
         this.auth = auth;
-        this.notificationListener = null;
-        this.responseListener = null;
-        this.badgeCountUnsubscribe = null;
-        this.badgeCount = 0;
-        
-        // ✅ FIX: Add initialization tracking
-        this.isInitialized = false;
-        this.isInitializing = false;
-        
-        // ✅ FIX: Track user for cleanup
-        this.currentUserId = null;
     }
 
     // Initialize push notifications for the current user
-    async initialize() {
-        // ✅ FIX: Prevent duplicate initialization
+    async initialize(): Promise<string | null> {
         if (this.isInitialized) {
             console.log('⚠️ NotificationService already initialized, skipping...');
-            return;
+            return null;
         }
 
         if (this.isInitializing) {
             console.log('⚠️ NotificationService initialization already in progress, skipping...');
-            return;
+            return null;
         }
 
         try {
             this.isInitializing = true;
             console.log('🔄 Initializing NotificationService...');
-            
+
             const user = this.auth.currentUser;
             if (!user) {
                 throw new Error('No authenticated user found');
             }
 
             this.currentUserId = user.uid;
-            
+
             // Register for push notifications and get REAL token
             const token = await registerForPushNotificationsAsync();
-            
+
             if (token) {
                 // Save real token to user's profile in Firestore
                 await this.saveTokenToDatabase(token);
@@ -55,10 +87,10 @@ class NotificationService {
                 console.log('⚠️ No token available - permissions may be denied');
             }
 
-            // Setup notification listeners (only if not already set up)
+            // Setup notification listeners
             this.setupNotificationListeners();
 
-            // Load initial badge count (only if not already set up)
+            // Load initial badge count
             await this.updateBadgeCount();
 
             this.isInitialized = true;
@@ -74,7 +106,7 @@ class NotificationService {
     }
 
     // Save push token to user's profile with enhanced data
-    async saveTokenToDatabase(token) {
+    async saveTokenToDatabase(token: string): Promise<void> {
         try {
             const user = this.auth.currentUser;
             if (!user) {
@@ -102,8 +134,7 @@ class NotificationService {
     }
 
     // Setup comprehensive notification listeners
-    setupNotificationListeners() {
-        // ✅ FIX: Prevent duplicate listeners
+    setupNotificationListeners(): void {
         if (this.notificationListener || this.responseListener) {
             console.log('⚠️ Notification listeners already set up, skipping...');
             return;
@@ -111,13 +142,11 @@ class NotificationService {
 
         console.log('🔗 Setting up notification listeners...');
 
-        // Listen for notifications received while app is foregrounded
         this.notificationListener = Notifications.addNotificationReceivedListener(notification => {
             console.log('🔔 Foreground notification received:', notification.request.content.title);
             this.handleNotificationReceived(notification);
         });
 
-        // Listen for user tapping on notifications
         this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
             console.log('👆 Notification tapped:', response.notification.request.content.title);
             this.handleNotificationResponse(response);
@@ -127,48 +156,40 @@ class NotificationService {
     }
 
     // Enhanced notification received handler
-    async handleNotificationReceived(notification) {
+    private async handleNotificationReceived(notification: Notifications.Notification): Promise<void> {
         try {
             const { title, body, data } = notification.request.content;
-            
-            // Save notification to user's personal collection
+
             await this.saveNotificationToFirestore({
-                title,
-                body,
+                title: title || '',
+                body: body || '',
                 data: data || {},
                 receivedAt: new Date(),
                 read: false,
-                type: data?.type || 'general'
+                type: (data?.type as string) || 'general'
             });
 
-            // Update badge count
             this.badgeCount += 1;
             await Notifications.setBadgeCountAsync(this.badgeCount);
 
-            // Show custom in-app notification if needed
             console.log(`📧 ${title}: ${body}`);
-            
+
         } catch (error) {
             console.error('❌ Error handling received notification:', error);
         }
     }
 
     // Enhanced notification response handler with navigation
-    async handleNotificationResponse(response) {
+    private async handleNotificationResponse(response: Notifications.NotificationResponse): Promise<void> {
         try {
             const { data } = response.notification.request.content;
-            
-            // Mark notification as read
+
             await this.markNotificationAsRead(response.notification.request.identifier);
-            
-            // Handle navigation based on notification data
+
             if (data?.type === 'issue_update' && data?.issueId) {
                 console.log('🔄 Should navigate to issue:', data.issueId);
-                // You can implement navigation here based on your routing system
-                // Example: router.push(`/issue/${data.issueId}`)
             } else if (data?.type === 'general') {
                 console.log('🏠 Should navigate to home/notifications');
-                // Navigate to notifications screen
             }
 
             console.log('✅ Notification response handled');
@@ -178,7 +199,7 @@ class NotificationService {
     }
 
     // Save notification to Firestore user collection
-    async saveNotificationToFirestore(notification) {
+    async saveNotificationToFirestore(notification: NotificationData): Promise<void> {
         try {
             const user = this.auth.currentUser;
             if (!user) {
@@ -201,20 +222,54 @@ class NotificationService {
     }
 
     // Mark specific notification as read
-    async markNotificationAsRead(notificationId) {
+    async markNotificationAsRead(notificationId: string): Promise<void> {
         try {
-            // Update badge count
-            this.badgeCount = Math.max(0, this.badgeCount - 1);
-            await Notifications.setBadgeCountAsync(this.badgeCount);
-            
-            console.log(`✅ Notification ${notificationId} marked as read`);
+            const user = this.auth.currentUser;
+            if (!user) return;
+
+            const notificationRef = doc(this.db, `users/${user.uid}/notifications`, notificationId);
+            await updateDoc(notificationRef, {
+                read: true,
+                readAt: serverTimestamp()
+            });
+
+            console.log(`✅ Notification ${notificationId} marked as read in Firestore`);
         } catch (error) {
             console.error('❌ Error marking notification as read:', error);
         }
     }
 
+    // Mark all notifications as read
+    async markAllAsRead(): Promise<void> {
+        try {
+            const user = this.auth.currentUser;
+            if (!user) return;
+
+            const notificationsRef = collection(this.db, `users/${user.uid}/notifications`);
+            const unreadQuery = query(notificationsRef, where("read", "==", false));
+            const snapshot = await getDocs(unreadQuery);
+
+            if (snapshot.empty) return;
+
+            console.log(`📑 Marking ${snapshot.size} notifications as read...`);
+
+            const batch = writeBatch(this.db);
+            snapshot.forEach((document) => {
+                batch.update(document.ref, {
+                    read: true,
+                    readAt: serverTimestamp()
+                });
+            });
+
+            await batch.commit();
+            console.log('✅ All notifications marked as read');
+        } catch (error) {
+            console.error('❌ Error marking all as read:', error);
+        }
+    }
+
     // Update badge count based on unread notifications
-    async updateBadgeCount() {
+    async updateBadgeCount(): Promise<void> {
         try {
             const user = this.auth.currentUser;
             if (!user) {
@@ -222,14 +277,12 @@ class NotificationService {
                 return;
             }
 
-            // ✅ FIX: Prevent duplicate badge count listeners
             if (this.badgeCountUnsubscribe) {
                 console.log('⚠️ Badge count listener already exists, cleaning up first...');
                 this.badgeCountUnsubscribe();
                 this.badgeCountUnsubscribe = null;
             }
 
-            // Listen to unread notifications in real-time
             const notificationsRef = collection(this.db, `users/${user.uid}/notifications`);
             const unreadQuery = query(notificationsRef, orderBy('createdAt', 'desc'), limit(50));
 
@@ -259,7 +312,7 @@ class NotificationService {
     }
 
     // Send local test notification
-    async sendLocalNotification(title, body, data = {}) {
+    async sendLocalNotification(title?: string, body?: string, data: Record<string, any> = {}): Promise<void> {
         try {
             await Notifications.scheduleNotificationAsync({
                 content: {
@@ -273,7 +326,7 @@ class NotificationService {
                     sound: 'default',
                     badge: this.badgeCount + 1,
                 },
-                trigger: null, // Send immediately
+                trigger: null,
             });
             console.log('✅ Local test notification sent');
         } catch (error) {
@@ -282,7 +335,7 @@ class NotificationService {
     }
 
     // Update comprehensive notification preferences
-    async updateNotificationPreferences(preferences) {
+    async updateNotificationPreferences(preferences: Partial<NotificationPreferences>): Promise<void> {
         try {
             const user = this.auth.currentUser;
             if (!user) {
@@ -311,7 +364,7 @@ class NotificationService {
     }
 
     // Get current notification permissions
-    async getPermissionStatus() {
+    async getPermissionStatus(): Promise<Notifications.PermissionStatus | 'unknown'> {
         try {
             const { status } = await Notifications.getPermissionsAsync();
             console.log('🔐 Current notification permission:', status);
@@ -323,7 +376,7 @@ class NotificationService {
     }
 
     // Request notification permissions
-    async requestPermissions() {
+    async requestPermissions(): Promise<boolean> {
         try {
             const { status } = await Notifications.requestPermissionsAsync();
             console.log('📝 Notification permission request result:', status);
@@ -335,7 +388,7 @@ class NotificationService {
     }
 
     // Clear all notifications
-    async clearAllNotifications() {
+    async clearAllNotifications(): Promise<void> {
         try {
             await Notifications.dismissAllNotificationsAsync();
             await Notifications.setBadgeCountAsync(0);
@@ -346,22 +399,18 @@ class NotificationService {
         }
     }
 
-    // ✅ FIX: Check if service is initialized
-    isServiceInitialized() {
+    isServiceInitialized(): boolean {
         return this.isInitialized;
     }
 
-    // ✅ FIX: Get current user ID
-    getCurrentUserId() {
+    getCurrentUserId(): string | null {
         return this.currentUserId;
     }
 
-    // ✅ FIX: Enhanced cleanup with all listeners and flags
-    cleanup() {
+    cleanup(): void {
         try {
             console.log('🧹 Starting NotificationService cleanup...');
 
-            // Clean up notification listeners
             if (this.notificationListener) {
                 this.notificationListener.remove();
                 this.notificationListener = null;
@@ -374,14 +423,12 @@ class NotificationService {
                 console.log('🧹 Response listener removed');
             }
 
-            // Clean up badge count listener
             if (this.badgeCountUnsubscribe) {
                 this.badgeCountUnsubscribe();
                 this.badgeCountUnsubscribe = null;
                 console.log('🧹 Badge count listener removed');
             }
 
-            // ✅ FIX: Reset all initialization flags
             this.isInitialized = false;
             this.isInitializing = false;
             this.currentUserId = null;
@@ -393,8 +440,7 @@ class NotificationService {
         }
     }
 
-    // ✅ FIX: Reinitialize service (useful for user switches)
-    async reinitialize() {
+    async reinitialize(): Promise<void> {
         console.log('🔄 Reinitializing NotificationService...');
         this.cleanup();
         await this.initialize();

@@ -23,43 +23,9 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
 import { useFirebase } from '../src/hooks/useFirebase';
 import { useTranslation } from 'react-i18next';
-import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
-
-// Icons
-const IconShield = () => (
-    <Svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </Svg>
-);
-
-const IconMail = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <Polyline points="22 6 12 13 2 6" />
-    </Svg>
-);
-
-const IconLock = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-        <Circle cx="12" cy="16" r="1" />
-        <Path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </Svg>
-);
-
-const IconEye = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-        <Circle cx="12" cy="12" r="3" />
-    </Svg>
-);
-
-const IconEyeOff = () => (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-        <Line x1="1" y1="1" x2="23" y2="23" />
-    </Svg>
-);
+import { IconShield, IconMail, IconLock, IconEye, IconEyeOff } from '../src/components/Icons';
+import { colors } from '../src/styles/colors';
+import { typography } from '../src/styles/typography';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -73,7 +39,7 @@ const LoginScreen = () => {
     const router = useRouter();
     const { auth, db } = useFirebase();
     const { t } = useTranslation();
-    
+
     // Animation values
     const [fadeAnim] = useState(new Animated.Value(0));
     const [slideAnim] = useState(new Animated.Value(50));
@@ -97,14 +63,14 @@ const LoginScreen = () => {
     // Create user profile in Firestore
     const createUserProfile = async (user: any, additionalData: any = {}) => {
         if (!user) return;
-        
+
         const userRef = doc(db, 'users', user.uid);
         const snapShot = await getDoc(userRef);
-        
+
         if (!snapShot.exists()) {
             const { displayName, email } = user;
             const createdAt = serverTimestamp();
-            
+
             try {
                 await setDoc(userRef, {
                     displayName: displayName || email.split('@')[0],
@@ -130,28 +96,28 @@ const LoginScreen = () => {
             setError('Please enter both email and password.');
             return;
         }
-        
+
         if (password.length < 6) {
             setError('Password must be at least 6 characters long.');
             return;
         }
-        
+
         if (password !== confirmPassword) {
             setError('Passwords do not match.');
             return;
         }
-        
+
         setLoading(true);
         setError('');
-        
+
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            
+
             await updateProfile(user, {
                 displayName: email.split('@')[0],
             });
-            
+
             await createUserProfile(user, {
                 source: 'mobile_app',
                 registrationComplete: true,
@@ -161,19 +127,19 @@ const LoginScreen = () => {
                     emailUpdates: true,
                 }
             });
-            
+
             console.log('Account created and profile synced!', user);
-            
+
             Alert.alert(
                 'Welcome! 🎉',
                 'Your account has been created successfully. You can now start reporting civic issues and make your city better!',
                 [{ text: 'Get Started', onPress: () => router.replace('/(tabs)/home') }]
             );
-            
+
         } catch (err: any) {
             console.error('Sign up error:', err);
             let errorMessage = 'An error occurred during sign-up.';
-            
+
             switch (err.code) {
                 case 'auth/email-already-in-use':
                     errorMessage = 'An account with this email already exists.';
@@ -202,30 +168,30 @@ const LoginScreen = () => {
             setError('Please enter both email and password.');
             return;
         }
-        
+
         setLoading(true);
         setError('');
-        
+
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            
+
             console.log('Logged in!', user);
-            
+
             const userRef = doc(db, 'users', user.uid);
             await setDoc(userRef, {
                 lastActive: serverTimestamp(),
                 lastLoginSource: 'mobile_app',
             }, { merge: true });
-            
+
             await createUserProfile(user);
-            
+
             router.replace('/(tabs)/home');
-            
+
         } catch (err: any) {
             console.error('Login error:', err);
             let errorMessage = 'An error occurred during login.';
-            
+
             switch (err.code) {
                 case 'auth/user-not-found':
                     errorMessage = 'No account found with this email address.';
@@ -257,7 +223,7 @@ const LoginScreen = () => {
             Alert.alert('Email Required', 'Please enter your email address to reset password.');
             return;
         }
-        
+
         try {
             await sendPasswordResetEmail(auth, email);
             Alert.alert(
@@ -284,7 +250,7 @@ const LoginScreen = () => {
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.keyboardView}
             >
-                <Animated.View 
+                <Animated.View
                     style={[
                         styles.innerContainer,
                         {
@@ -302,8 +268,8 @@ const LoginScreen = () => {
                             {isSignUp ? 'Create Account' : 'Welcome Back'}
                         </Text>
                         <Text style={styles.subtitle}>
-                            {isSignUp 
-                                ? 'Join thousands making cities better' 
+                            {isSignUp
+                                ? 'Join thousands making cities better'
                                 : 'Sign in to continue reporting issues'
                             }
                         </Text>
@@ -349,7 +315,7 @@ const LoginScreen = () => {
                                 secureTextEntry={!showPassword}
                                 autoComplete="password"
                             />
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.eyeIcon}
                                 onPress={() => setShowPassword(!showPassword)}
                             >
@@ -371,7 +337,7 @@ const LoginScreen = () => {
                                     onChangeText={setConfirmPassword}
                                     secureTextEntry={!showConfirmPassword}
                                 />
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.eyeIcon}
                                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                                 >
@@ -382,7 +348,7 @@ const LoginScreen = () => {
 
                         {/* Forgot Password Link (Login Only) */}
                         {!isSignUp && (
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.forgotPassword}
                                 onPress={handlePasswordReset}
                             >
@@ -404,8 +370,8 @@ const LoginScreen = () => {
                             </View>
                         ) : (
                             <>
-                                <TouchableOpacity 
-                                    style={styles.primaryButton} 
+                                <TouchableOpacity
+                                    style={styles.primaryButton}
                                     onPress={isSignUp ? handleSignUp : handleLogin}
                                 >
                                     <Text style={styles.primaryButtonText}>
@@ -415,8 +381,8 @@ const LoginScreen = () => {
 
                                 <View style={styles.switchModeContainer}>
                                     <Text style={styles.switchModeText}>
-                                        {isSignUp 
-                                            ? 'Already have an account? ' 
+                                        {isSignUp
+                                            ? 'Already have an account? '
                                             : "Don't have an account? "
                                         }
                                     </Text>
@@ -438,7 +404,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0F172A',
+        backgroundColor: colors.backgroundDark,
     },
     keyboardView: {
         flex: 1,
@@ -459,17 +425,16 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     title: {
+        ...typography.h2,
         fontSize: 28,
-        fontWeight: 'bold',
-        color: '#F8FAFC',
+        color: colors.white,
         marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: '#94A3B8',
+        ...typography.body,
+        color: colors.textMuted,
         textAlign: 'center',
-        lineHeight: 22,
     },
     errorContainer: {
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -477,11 +442,11 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 20,
         borderLeftWidth: 4,
-        borderLeftColor: '#EF4444',
+        borderLeftColor: colors.error,
     },
     errorText: {
-        color: '#EF4444',
-        fontSize: 14,
+        ...typography.bodySmall,
+        color: colors.error,
         textAlign: 'center',
     },
     form: {
@@ -490,19 +455,19 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E293B',
+        backgroundColor: colors.surfaceDark,
         borderRadius: 12,
         marginBottom: 16,
         paddingHorizontal: 16,
         borderWidth: 1,
-        borderColor: '#334155',
+        borderColor: colors.borderDark,
     },
     inputIcon: {
         marginRight: 12,
     },
     input: {
         flex: 1,
-        color: '#F8FAFC',
+        color: colors.white,
         fontSize: 16,
         paddingVertical: 16,
     },
@@ -514,8 +479,8 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     forgotPasswordText: {
-        color: '#2563EB',
-        fontSize: 14,
+        ...typography.bodySmall,
+        color: colors.primary,
         fontWeight: '500',
     },
     buttonContainer: {
@@ -526,15 +491,15 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     loadingText: {
-        color: '#94A3B8',
-        fontSize: 16,
+        ...typography.body,
+        color: colors.textMuted,
     },
     primaryButton: {
-        backgroundColor: '#2563EB',
+        backgroundColor: colors.primary,
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',
-        shadowColor: '#2563EB',
+        shadowColor: colors.primary,
         shadowOffset: {
             width: 0,
             height: 4,
@@ -544,9 +509,7 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     primaryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
+        ...typography.button,
     },
     switchModeContainer: {
         flexDirection: 'row',
@@ -554,12 +517,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     switchModeText: {
-        color: '#94A3B8',
-        fontSize: 14,
+        ...typography.bodySmall,
+        color: colors.textMuted,
     },
     switchModeLink: {
-        color: '#2563EB',
-        fontSize: 14,
+        ...typography.bodySmall,
+        color: colors.primary,
         fontWeight: '600',
     },
 });

@@ -9,14 +9,14 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// IMPORTANT: Use the EXACT SAME config as your admin portal
+// Firebase configuration loaded from environment variables (.env file)
 const firebaseConfig = {
-    apiKey: "AIzaSyBNE6vcHc-9aPfb-SkxKHzpYnO6tF5L83E",
-    authDomain: "jansahyog-59349.firebaseapp.com",
-    projectId: "jansahyog-59349",
-    storageBucket: "jansahyog-59349.firebasestorage.app",
-    messagingSenderId: "601117233933",
-    appId: "1:601117233933:web:5c43d2458bf3d6d8f9d644",
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 let app;
@@ -50,35 +50,29 @@ export function useFirebase() {
     return { auth, db, storage, app };
 }
 
-// ✅ FIX: Global flags to prevent duplicate requests
+// Global flags to prevent duplicate requests
 let isRequestingToken = false;
 let cachedToken = null;
+let pendingResolvers = []; // Promise-based queue instead of busy-wait
 
-// REAL Expo Push Notification Registration with duplicate prevention
+// Expo Push Notification Registration with duplicate prevention
 export async function registerForPushNotificationsAsync() {
-    // ✅ FIX: Return cached token if available
+    // Return cached token if available
     if (cachedToken) {
-        console.log('🔄 Using cached push token:', cachedToken.substring(0, 20) + '...');
         return cachedToken;
     }
 
-    // ✅ FIX: Prevent concurrent token requests
+    // Prevent concurrent token requests using Promise queue (no busy-wait)
     if (isRequestingToken) {
-        console.log('⚠️ Token request already in progress, waiting...');
-        
-        // Wait for ongoing request to complete
-        while (isRequestingToken) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        return cachedToken;
+        return new Promise((resolve) => {
+            pendingResolvers.push(resolve);
+        });
     }
 
     let token;
 
     try {
         isRequestingToken = true;
-        console.log('🔄 Starting push token registration...');
 
         // Configure Android notification channels
         if (Platform.OS === 'android') {
@@ -128,40 +122,40 @@ export async function registerForPushNotificationsAsync() {
             try {
                 // Get the REAL Expo Push Token
                 const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-                console.log('📋 Project ID found:', projectId);
                 
                 const tokenData = await Notifications.getExpoPushTokenAsync({
                     projectId: projectId,
                 });
                 
                 token = tokenData.data;
-                cachedToken = token; // ✅ FIX: Cache the token
-                console.log('✅ Real Expo Push Token obtained:', token);
+                cachedToken = token;
                 return token;
                 
             } catch (e) {
-                console.error('❌ Error getting Expo push token:', e);
+                console.error('Error getting Expo push token:', e);
                 
-                // Fallback: create a device-specific identifier
+                // Fallback: create a clearly-marked non-real identifier
+                // Uses FALLBACK_ prefix so it won't be confused with real tokens
                 const deviceId = Device.osInternalBuildId || Device.modelId || 'unknown';
-                const fallbackToken = `ExponentPushToken[${deviceId}_${Date.now()}]`;
-                console.log('🔄 Using fallback token:', fallbackToken);
-                cachedToken = fallbackToken; // ✅ FIX: Cache fallback token
+                const fallbackToken = `FALLBACK_${deviceId}_${Date.now()}`;
+                cachedToken = fallbackToken;
                 return fallbackToken;
             }
         } else {
-            console.log('⚠️ Must use physical device for Push Notifications');
-            // For simulator/emulator, return a test token with proper format
-            const simulatorToken = `ExponentPushToken[simulator_${Date.now()}]`;
-            cachedToken = simulatorToken; // ✅ FIX: Cache simulator token
+            // Simulator/emulator — return a clearly-marked test token
+            const simulatorToken = `SIMULATOR_${Platform.OS}_${Date.now()}`;
+            cachedToken = simulatorToken;
             return simulatorToken;
         }
 
     } catch (error) {
-        console.error('❌ Fatal error in push token registration:', error);
+        console.error('Fatal error in push token registration:', error);
         return null;
     } finally {
-        isRequestingToken = false; // ✅ FIX: Always reset flag
+        isRequestingToken = false;
+        // Resolve all queued waiters with the result
+        pendingResolvers.forEach(resolve => resolve(cachedToken));
+        pendingResolvers = [];
     }
 }
 
@@ -231,16 +225,10 @@ export async function cancelScheduledNotification(identifier) {
     }
 }
 
-// ✅ FIX: Clear cached token (useful for logout)
+// Clear cached token (useful for logout)
 export function clearCachedToken() {
     cachedToken = null;
-    console.log('🧹 Cached push token cleared');
 }
 
 // Export individual services
 export { auth, db, storage };
-
-// Debug logging
-console.log('🔥 Firebase initialized with REAL Expo Push Notifications');
-console.log('📱 Platform:', Platform.OS);
-console.log('📟 Device Info:', Device.isDevice ? 'Physical Device' : 'Simulator/Emulator');

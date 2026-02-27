@@ -1,4 +1,25 @@
+# Dependencies
 node_modules/
-.DS_Store
-.env
 
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.cursor/
+.vscode/
+*.swp
+*.swo
+
+# Expo
+.expo/
+
+# Build
+dist/
+build/

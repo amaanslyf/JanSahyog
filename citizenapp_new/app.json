@@ -82,7 +82,8 @@
           "photosPermission": "This app needs access to photos to attach images to civic issue reports.",
           "cameraPermission": "This app needs access to camera to take photos of civic issues."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

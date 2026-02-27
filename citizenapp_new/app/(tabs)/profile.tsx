@@ -49,7 +49,7 @@ const ProfileScreen = () => {
     const { auth, db } = useFirebase();
     const { user } = useAuth();
     const { t, i18n: i18nInstance } = useTranslation();
-    
+
     const [userStats, setUserStats] = useState<UserStats>({
         totalIssues: 0,
         resolvedIssues: 0,
@@ -62,7 +62,7 @@ const ProfileScreen = () => {
     });
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    
+
     // Language dropdown
     const [open, setOpen] = useState(false);
     const [value, setValue] = useState(i18nInstance.language);
@@ -85,39 +85,33 @@ const ProfileScreen = () => {
                 where('reportedById', '==', user.uid)
             );
             const userIssuesSnapshot = await getDocs(userIssuesQuery);
-            
+
             const issues = userIssuesSnapshot.docs.map(doc => doc.data());
-            
+
             const resolvedCount = issues.filter(issue => issue.status === 'Resolved').length;
             const inProgressCount = issues.filter(issue => issue.status === 'In Progress').length;
             const openCount = issues.filter(issue => issue.status === 'Open').length;
-            
+
             // Get user document for points and other data
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
             const userData = userDoc.data();
-            
-            // Calculate rank (simplified - in real app, this would be more complex)
-            const allUsersSnapshot = await getDocs(collection(db, 'users'));
-            const allUsers = allUsersSnapshot.docs.map(doc => doc.data()).filter(u => u.points);
-            const sortedUsers = allUsers.sort((a, b) => (b.points || 0) - (a.points || 0));
-            const userRank = sortedUsers.findIndex(u => u.uid === user.uid) + 1;
-            
+
             // Fixed: Proper date handling
             const creationTime = user.metadata?.creationTime;
             const joinDate = creationTime ? new Date(creationTime) : new Date();
-            
+
             setUserStats({
                 totalIssues: issues.length,
                 resolvedIssues: resolvedCount,
                 inProgressIssues: inProgressCount,
                 openIssues: openCount,
                 points: userData?.points || (issues.length * 10),
-                rank: userRank || 0,
+                rank: userData?.rank || 0, // Rank should be pre-calculated by a backend task/admin
                 joinDate: userData?.createdAt?.toDate() || joinDate,
                 lastActivity: userData?.lastActive?.toDate() || new Date(),
             });
-            
+
         } catch (error) {
             console.error('Error loading user stats:', error);
         } finally {
@@ -185,8 +179,8 @@ const ProfileScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            
-            <ScrollView 
+
+            <ScrollView
                 style={styles.scrollView}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -210,7 +204,7 @@ const ProfileScreen = () => {
                                 <Text style={styles.rankText}>#{userStats.rank}</Text>
                             </View>
                         </View>
-                        
+
                         <View style={styles.userInfo}>
                             <Text style={styles.userName}>
                                 {user?.displayName || user?.email?.split('@')[0] || 'User'}
@@ -232,7 +226,7 @@ const ProfileScreen = () => {
                 {/* Stats Grid */}
                 <View style={styles.statsContainer}>
                     <Text style={styles.sectionTitle}>Your Impact</Text>
-                    
+
                     <View style={styles.statsGrid}>
                         <View style={styles.statCard}>
                             <View style={styles.statIconContainer}>
@@ -241,7 +235,7 @@ const ProfileScreen = () => {
                             <Text style={styles.statNumber}>{userStats.totalIssues}</Text>
                             <Text style={styles.statLabel}>Issues Reported</Text>
                         </View>
-                        
+
                         <View style={styles.statCard}>
                             <View style={styles.statIconContainer}>
                                 <IconTrendingUp />
@@ -249,7 +243,7 @@ const ProfileScreen = () => {
                             <Text style={styles.statNumber}>{userStats.resolvedIssues}</Text>
                             <Text style={styles.statLabel}>Resolved</Text>
                         </View>
-                        
+
                         <View style={styles.statCard}>
                             <View style={styles.statIconContainer}>
                                 <IconAward />
@@ -263,18 +257,18 @@ const ProfileScreen = () => {
                     <View style={styles.progressContainer}>
                         <Text style={styles.progressTitle}>Resolution Rate</Text>
                         <View style={styles.progressBar}>
-                            <View 
+                            <View
                                 style={[
-                                    styles.progressFill, 
-                                    { 
-                                        width: `${userStats.totalIssues > 0 ? (userStats.resolvedIssues / userStats.totalIssues) * 100 : 0}%` 
+                                    styles.progressFill,
+                                    {
+                                        width: `${userStats.totalIssues > 0 ? (userStats.resolvedIssues / userStats.totalIssues) * 100 : 0}%`
                                     }
-                                ]} 
+                                ]}
                             />
                         </View>
                         <Text style={styles.progressText}>
-                            {userStats.totalIssues > 0 
-                                ? `${Math.round((userStats.resolvedIssues / userStats.totalIssues) * 100)}%` 
+                            {userStats.totalIssues > 0
+                                ? `${Math.round((userStats.resolvedIssues / userStats.totalIssues) * 100)}%`
                                 : '0%'
                             } of your issues resolved
                         </Text>
@@ -284,7 +278,7 @@ const ProfileScreen = () => {
                 {/* Language Settings */}
                 <View style={styles.settingsContainer}>
                     <Text style={styles.sectionTitle}>{t('profile.changeLanguage')}</Text>
-                    
+
                     <View style={styles.languageContainer}>
                         <DropDownPicker
                             open={open}

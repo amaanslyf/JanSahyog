@@ -3,14 +3,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useFirebase } from '../hooks/useFirebase';
 import NetInfo from '@react-native-community/netinfo';
-import { 
-    collection, 
-    query, 
-    where, 
-    getDocs, 
-    doc, 
-    updateDoc, 
-    setDoc, 
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    doc,
+    updateDoc,
+    setDoc,
     serverTimestamp,
     onSnapshot,
     Timestamp,
@@ -69,11 +69,11 @@ interface Notification {
     createdAt: Timestamp;
 }
 
-const AuthContext = createContext<AuthContextType>({ 
-    user: null, 
-    isLoading: true, 
+const AuthContext = createContext<AuthContextType>({
+    user: null,
+    isLoading: true,
     userProfile: null,
-    updateUserProfile: async () => {},
+    updateUserProfile: async () => { },
     isOnline: true,
     pendingUploads: 0,
     notificationService: null,
@@ -93,7 +93,7 @@ const syncPendingUploads = async (db: any, storage: any) => {
 
         for (const q of queries) {
             const snapshot = await getDocs(q);
-            
+
             if (snapshot.empty) continue;
 
             console.log(`📤 Found ${snapshot.docs.length} items to sync.`);
@@ -107,7 +107,7 @@ const syncPendingUploads = async (db: any, storage: any) => {
 
                 try {
                     console.log(`🖼️ Uploading image for ${docId}...`);
-                    
+
                     const response = await fetch(data.localImageUri);
                     const blob = await response.blob();
                     const fileName = `${data.reportedById || data.userId || 'anonymous'}/${Date.now()}`;
@@ -269,13 +269,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             const notService = new NotificationService(db, auth);
             await notService.initialize();
-            
+
             notificationServiceRef.current = notService;
             setNotificationService(notService);
 
             // Load user notifications
             loadUserNotifications(userId);
-            
+
             console.log('✅ NotificationService initialized successfully');
         } catch (error) {
             console.error('❌ Error initializing notifications:', error);
@@ -292,7 +292,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             notificationServiceRef.current = null;
             setNotificationService(null);
         }
-        
+
         if (notificationUnsubscribeRef.current) {
             notificationUnsubscribeRef.current();
             notificationUnsubscribeRef.current = null;
@@ -310,7 +310,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const userRef = doc(db, 'users', uid);
-        
+
         const unsubscribe = onSnapshot(userRef, (doc) => {
             if (doc.exists()) {
                 setUserProfile({ uid, ...doc.data() } as UserProfile);
@@ -329,12 +329,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // ✅ FIX: Monitor authentication state with proper cleanup (no dependencies)
     useEffect(() => {
         console.log('🔐 Setting up auth state listener...');
-        
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             console.log('👤 Auth state changed:', user ? `User: ${user.uid}` : 'No user');
-            
+
             setUser(user);
-            
+
             if (user) {
                 // Only initialize if not already done
                 if (!notificationServiceRef.current && !isInitializingRef.current) {
@@ -345,10 +345,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setUserProfile(null);
                 cleanupNotifications();
             }
-            
+
             setIsLoading(false);
         });
-        
+
         return () => {
             console.log('🧹 Cleaning up auth listener...');
             unsubscribe();
@@ -359,7 +359,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // ✅ FIX: Update user profile with memoization
     const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
         if (!user) return;
-        
+
         try {
             const userRef = doc(db, 'users', user.uid);
             await updateDoc(userRef, {
@@ -374,31 +374,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Monitor network connectivity
     useEffect(() => {
+        let wasOffline = false;
+
         const unsubscribe = NetInfo.addEventListener(state => {
-            const wasOffline = !isOnline;
-            setIsOnline(state.isConnected || false);
-            
-            if (state.isConnected && wasOffline) {
+            const currentlyOnline = state.isConnected || false;
+            setIsOnline(currentlyOnline);
+
+            if (currentlyOnline && wasOffline) {
                 console.log("🌐 Connection restored. Starting sync...");
                 syncPendingUploads(db, storage);
             }
+            wasOffline = !currentlyOnline;
         });
 
         return () => unsubscribe();
-    }, [db, storage, isOnline]);
+    }, [db, storage]);
 
     // Monitor pending uploads count
     useEffect(() => {
         if (!user) return;
+
+        // Track counts from each source separately
+        let firestorePendingCount = 0;
+        let offlinePendingCount = 0;
+
+        const updateTotal = () => {
+            setPendingUploads(firestorePendingCount + offlinePendingCount);
+        };
 
         const queries = [
             query(collection(db, "complaints"), where("status", "==", "Pending Upload")),
             query(collection(db, "civicIssues"), where("status", "==", "Pending Upload"))
         ];
 
-        const unsubscribes = queries.map(q => 
+        const unsubscribes = queries.map(q =>
             onSnapshot(q, (snapshot) => {
-                setPendingUploads(prev => prev + snapshot.size);
+                firestorePendingCount = snapshot.size;
+                updateTotal();
             })
         );
 
@@ -407,8 +419,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const offlineData = await AsyncStorage.getItem('offline_complaints');
                 if (offlineData) {
                     const complaints = JSON.parse(offlineData);
-                    setPendingUploads(prev => prev + complaints.length);
+                    offlinePendingCount = complaints.length;
+                } else {
+                    offlinePendingCount = 0;
                 }
+                updateTotal();
             } catch (error) {
                 console.error('Error checking offline complaints:', error);
             }
@@ -443,7 +458,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const timer = setTimeout(() => {
                 syncPendingUploads(db, storage);
             }, 2000);
-            
+
             return () => clearTimeout(timer);
         }
     }, [user, isOnline, db, storage]);

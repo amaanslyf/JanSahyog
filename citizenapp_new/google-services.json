@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "601117233933",
+    "project_id": "jansahyog-59349",
+    "storage_bucket": "jansahyog-59349.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601117233933:android:236b67b6b2311497f9d644",
+        "android_client_info": {
+          "package_name": "com.jansahyog.citizen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpmacswQPM8Ti9hpuD7rYYBsRaCIImIqA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

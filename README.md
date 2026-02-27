@@ -117,7 +117,7 @@ graph TB
 
 ```
 jansahyog/
-├── admin-portal/              # React.js Admin Dashboard
+├── admin-portal-ts/           # React.js Admin Dashboard
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
 │   │   ├── pages/            # Main application pages
@@ -127,7 +127,7 @@ jansahyog/
 │   │   └── utils/            # Utility functions and helpers
 │   ├── public/               # Static assets
 │   └── Dockerfile            # Docker configuration
-├── mobile-app/               # React Native/Expo Mobile App
+├── citizenapp_new/            # React Native/Expo Mobile App
 │   ├── src/
 │   │   ├── components/       # Mobile UI components
 │   │   ├── screens/          # App screens/pages
@@ -220,14 +220,14 @@ git clone https://github.com/yourusername/jansahyog.git
 cd jansahyog
 
 # Setup admin portal
-cd admin-portal
+cd admin-portal-ts
 npm install
 cp .env.example .env
 # Configure your Firebase credentials in .env
 npm start
 
 # Setup mobile app (in another terminal)
-cd ../mobile-app
+cd ../citizenapp_new
 npm install
 # Configure Firebase in src/hooks/useFirebase.js
 npx expo start
@@ -272,7 +272,7 @@ cd jansahyog
 
 #### 3. Admin Portal Setup
 ```bash
-cd admin-portal
+cd admin-portal-ts
 npm install
 
 # Create environment file
@@ -292,7 +292,7 @@ npm start
 
 #### 4. Mobile App Setup
 ```bash
-cd mobile-app
+cd citizenapp_new
 npm install
 
 # Place Firebase configuration files
@@ -551,13 +551,13 @@ mobile-app/
 
 ```bash
 # Admin Portal Tests
-cd admin-portal
+cd admin-portal-ts
 npm test                    # Run unit tests
 npm run test:coverage      # Run with coverage report
 npm run test:watch         # Watch mode for development
 
 # Mobile App Tests
-cd mobile-app
+cd citizenapp_new
 npm test                   # Run Expo tests
 expo test:android         # Test on Android device
 expo test:ios            # Test on iOS device
@@ -577,11 +577,11 @@ Current test coverage:
 npm install -g @playwright/test
 
 # Run E2E tests
-cd admin-portal
+cd admin-portal-ts
 npm run test:e2e
 
 # Mobile E2E with Detox
-cd mobile-app
+cd citizenapp_new
 npm run test:detox:android
 npm run test:detox:ios
 ```
@@ -604,12 +604,12 @@ docker-compose up -d
 #### Individual Container Build
 ```bash
 # Admin Portal
-cd admin-portal
+cd admin-portal-ts
 docker build -t jansahyog-admin .
 docker run -p 3000:3000 jansahyog-admin
 
 # Mobile App (for web version)
-cd mobile-app
+cd citizenapp_new
 docker build -t jansahyog-mobile .
 docker run -p 19006:19006 jansahyog-mobile
 ```
@@ -618,7 +618,7 @@ docker run -p 19006:19006 jansahyog-mobile
 
 #### Firebase Hosting (Admin Portal)
 ```bash
-cd admin-portal
+cd admin-portal-ts
 npm run build
 firebase deploy --only hosting
 
@@ -628,7 +628,7 @@ firebase deploy --only hosting
 
 #### Expo Application Services (Mobile App)
 ```bash
-cd mobile-app
+cd citizenapp_new
 
 # Install EAS CLI
 npm install -g eas-cli

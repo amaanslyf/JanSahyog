@@ -1,9 +1,9 @@
 # 🏛️ JanSahyog - Smart Civic Issue Management System
 
-[![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
-[![React Native](https://img.shields.io/badge/React%20Native-Expo%20SDK%2051-green.svg)](https://expo.dev/)
-[![Firebase](https://img.shields.io/badge/Firebase-10.7.1-orange.svg)](https://firebase.google.com/)
-[![Material-UI](https://img.shields.io/badge/Material--UI-5.15.0-blue.svg)](https://mui.com/)
+[![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://reactjs.org/)
+[![React Native](https://img.shields.io/badge/React%20Native-Expo%20SDK%2054-green.svg)](https://expo.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-12.2.1-orange.svg)](https://firebase.google.com/)
+[![Material-UI](https://img.shields.io/badge/Material--UI-7.3.2-blue.svg)](https://mui.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > A comprehensive full-stack civic governance platform that bridges the gap between citizens and local government, enabling efficient reporting, tracking, and resolution of municipal issues.
@@ -54,6 +54,8 @@
 | **🔔 Push Notifications** | Instant alerts for status changes |
 | **🏆 Gamification System** | Points and badges for active civic participation |
 | **📊 Personal Dashboard** | Track your reported issues and impact |
+| **🌍 Multilingual Support** | Full support for English and Hindi (i18n) |
+| **🌙 Dark Mode** | Native dark mode support with theme-aware UI |
 
 ### 🖥️ Admin Web Portal Features
 
@@ -116,31 +118,30 @@ graph TB
 ### 📂 Monorepo Structure
 
 ```
-jansahyog/
-├── admin-portal-ts/           # React.js Admin Dashboard
+├── admin-portal-ts/           # Vite + React.js Admin Dashboard
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
 │   │   ├── pages/            # Main application pages
 │   │   ├── services/         # API services and business logic
 │   │   ├── hooks/            # Custom React hooks
-│   │   ├── contexts/         # React contexts for state management
-│   │   └── utils/            # Utility functions and helpers
+│   │   ├── utils/            # Utility functions and helpers
+│   │   └── firebase/         # Firebase configuration
 │   ├── public/               # Static assets
-│   └── Dockerfile            # Docker configuration
-├── citizenapp_new/            # React Native/Expo Mobile App
+│   ├── .env.example          # Environment variables template
+│   └── vite.config.ts        # Vite configuration
+├── citizenapp_new/            # React Native + Expo Router Mobile App
+│   ├── app/                  # File-based routing (screens)
 │   ├── src/
 │   │   ├── components/       # Mobile UI components
-│   │   ├── screens/          # App screens/pages
-│   │   ├── navigation/       # Navigation configuration
-│   │   ├── services/         # Mobile services
-│   │   ├── hooks/            # Custom hooks
-│   │   └── contexts/         # State management
+│   │   ├── context/          # Auth and Theme providers
+│   │   ├── i18n/             # Translations (English & Hindi)
+│   │   ├── services/         # Firebase services
+│   │   └── styles/           # Theme-aware design tokens
 │   ├── assets/               # Images, fonts, etc.
 │   ├── app.json              # Expo configuration
-│   └── Dockerfile            # Docker configuration
+│   └── .env.example          # Environment variables template
 ├── docs/                     # Documentation
-├── docker-compose.yml        # Multi-container Docker setup
-├── .github/                  # GitHub Actions CI/CD
+├── firestore.rules           # Firestore security rules
 └── README.md                 # This file
 ```
 
@@ -149,13 +150,13 @@ jansahyog/
 ### Frontend Technologies
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **React.js** | 18.2.0 | Admin portal frontend framework |
-| **React Native** | Expo SDK 51 | Mobile app development |
-| **Material-UI** | 5.15.0 | UI component library for admin portal |
-| **React Navigation** | 6.x | Mobile app navigation |
-| **React Router** | 6.x | Web app routing |
-| **Recharts** | 2.8.0 | Data visualization and charts |
-| **React Leaflet** | 4.2.1 | Interactive maps integration |
+| **React.js** | 19.1.x | Admin portal frontend framework |
+| **React Native** | Expo SDK 54 | Mobile app development |
+| **Material-UI** | 7.3.2 | UI component library for admin portal |
+| **Expo Router** | 4.x/6.x | Mobile app file-based navigation |
+| **Vite** | 6.x | Build tool and dev server for admin portal |
+| **Recharts** | 3.2.1 | Data visualization and charts |
+| **React Leaflet** | 5.0.0 | Interactive maps integration |
 
 ### Backend & Services
 | Service | Purpose |
@@ -224,12 +225,13 @@ cd admin-portal-ts
 npm install
 cp .env.example .env
 # Configure your Firebase credentials in .env
-npm start
+npm run dev
 
 # Setup mobile app (in another terminal)
 cd ../citizenapp_new
 npm install
-# Configure Firebase in src/hooks/useFirebase.js
+cp .env.example .env
+# Configure Firebase in .env
 npx expo start
 ```
 
@@ -275,19 +277,13 @@ cd jansahyog
 cd admin-portal-ts
 npm install
 
-# Create environment file
-cat > .env << EOF
-REACT_APP_FIREBASE_API_KEY=your_api_key_here
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
-EOF
+# Create environment file from example
+cp .env.example .env
 
-# Start development server
-npm start
-# Access at http://localhost:3000
+# Configure your Firebase credentials in .env (using VITE_ prefix)
+# Start development server (Vite)
+npm run dev
+# Access at http://localhost:5173 (default Vite port)
 ```
 
 #### 4. Mobile App Setup
@@ -295,13 +291,14 @@ npm start
 cd citizenapp_new
 npm install
 
-# Place Firebase configuration files
+# Create environment file from example
+cp .env.example .env
+
+# Place Firebase configuration files if using native SDKs
 # - Copy google-services.json to root directory
 # - Copy GoogleService-Info.plist to root directory
 
-# Update Firebase config in src/hooks/useFirebase.js
-# Replace firebaseConfig object with your credentials
-
+# Configure Firebase in .env (EXPO_PUBLIC_ prefix for client access)
 # Start Expo development server
 npx expo start
 
@@ -314,17 +311,24 @@ npx expo start
 
 #### Admin Portal (.env)
 ```bash
-# Firebase Configuration
-REACT_APP_FIREBASE_API_KEY=AIza...
-REACT_APP_FIREBASE_AUTH_DOMAIN=jansahyog-project.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=jansahyog-project
-REACT_APP_FIREBASE_STORAGE_BUCKET=jansahyog-project.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=123456789
-REACT_APP_FIREBASE_APP_ID=1:123456789:web:abc...
+# Firebase Configuration (Vite requires VITE_ prefix)
+VITE_FIREBASE_API_KEY=AIza...
+VITE_FIREBASE_AUTH_DOMAIN=jansahyog.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=jansahyog
+VITE_FIREBASE_STORAGE_BUCKET=jansahyog.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=863584583636
+VITE_FIREBASE_APP_ID=1:863584583636:web:3cc03f...
+```
 
-# Optional: Analytics and monitoring
-REACT_APP_GOOGLE_ANALYTICS_ID=GA-TRACKING-ID
-REACT_APP_SENTRY_DSN=https://your-sentry-dsn
+#### Mobile App (.env)
+```bash
+# Firebase Configuration (Expo requires EXPO_PUBLIC_ prefix)
+EXPO_PUBLIC_FIREBASE_API_KEY=AIza...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=jansahyog.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=jansahyog
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=jansahyog.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=863584583636
+EXPO_PUBLIC_FIREBASE_APP_ID=1:863584583636:ios:5f...
 ```
 
 #### Mobile App Configuration
@@ -368,14 +372,15 @@ service cloud.firestore {
          request.auth.token.admin == true);
     }
     
-    // Issues - Citizens can create, admins can modify
+    // Issues - Citizens can create, anyone can read
     match /civicIssues/{issueId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && 
-        request.auth.uid != null;
-      allow update: if request.auth != null && 
-        (request.auth.token.admin == true || 
-         resource.data.reportedById == request.auth.uid);
+      allow read, list: if true;
+      allow create: if request.auth != null;
+      allow update: if (request.auth != null && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+         resource.data.reportedById == request.auth.uid)) ||
+        (request.auth != null && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'upvotedBy']));
       allow delete: if request.auth != null && 
         request.auth.token.admin == true;
     }
@@ -471,78 +476,47 @@ service firebase.storage {
 
 ### Admin Portal Structure
 ```
-admin-portal/
+admin-portal-ts/
 ├── public/
 │   ├── index.html
-│   ├── firebase-messaging-sw.js    # Service worker for notifications
-│   └── manifest.json               # PWA manifest
+│   └── vite.svg
 ├── src/
-│   ├── components/
-│   │   ├── Layout/
-│   │   │   ├── Navbar.js          # Top navigation bar
-│   │   │   └── Sidebar.js         # Side navigation menu
-│   │   ├── Charts/                # Reusable chart components
-│   │   └── common/                # Shared UI components
-│   ├── pages/
-│   │   ├── Dashboard.js           # Main analytics dashboard
-│   │   ├── IssuesTable.js         # Issue management page
-│   │   ├── MapPage.js             # Interactive map view
-│   │   ├── AnalyticsPage.js       # Advanced analytics
-│   │   ├── DepartmentsPage.js     # Department management
-│   │   ├── CommunicationPage.js   # Notification center
-│   │   ├── UsersPage.js           # User management
-│   │   └── LoginPage.js           # Authentication
-│   ├── services/
-│   │   └── notificationService.js # Notification handling
-│   ├── firebase/
-│   │   └── firebase.js            # Firebase configuration
+│   ├── components/                # Reusable UI components (Layout, Dashboard, etc.)
+│   ├── pages/                     # Application pages (Dashboard, Issues, Map, etc.)
+│   ├── services/                  # Firebase & API service logic
 │   ├── hooks/                     # Custom React hooks
-│   ├── utils/                     # Utility functions
-│   └── App.js                     # Main app component
-├── .env                           # Environment variables
-├── package.json
-└── Dockerfile
+│   ├── firebase/                  # Firebase initialization and config
+│   ├── types/                     # TypeScript interfaces
+│   ├── utils/                     # Helper functions
+│   ├── App.tsx                    # Root component with routing
+│   └── main.tsx                   # Entry point
+├── .env.example                   # Environment template
+├── vite.config.ts                 # Vite configuration
+└── package.json
 ```
 
-### Mobile App Structure
+### Citizen Mobile App Structure
 ```
-mobile-app/
+citizenapp_new/
+├── app/                           # Expo Router (File-based routing)
+│   ├── (tabs)/                    # Main bottom tab screens (Home, Report, Profile)
+│   ├── IssueDetail/               # Dynamic routes for issue details
+│   ├── login.tsx                  # Login screen
+│   └── _layout.tsx                # Root layout & navigation providers
 ├── src/
-│   ├── components/
-│   │   ├── IssueCard.js           # Issue display component
-│   │   ├── CategoryPicker.js      # Category selection
-│   │   └── LocationPicker.js      # GPS location handling
-│   ├── screens/
-│   │   ├── Home/
-│   │   │   └── HomeScreen.js      # Main dashboard
-│   │   ├── Report/
-│   │   │   ├── ReportIssue.js     # Issue reporting form
-│   │   │   └── CameraScreen.js    # Photo capture
-│   │   ├── Profile/
-│   │   │   └── ProfileScreen.js   # User profile
-│   │   └── Auth/
-│   │       ├── LoginScreen.js     # User authentication
-│   │       └── RegisterScreen.js  # User registration
-│   ├── navigation/
-│   │   └── AppNavigator.js        # Navigation configuration
-│   ├── services/
-│   │   └── notificationService.js # Push notification handling
-│   ├── hooks/
-│   │   └── useFirebase.js         # Firebase integration
-│   ├── contexts/
-│   │   └── AuthContext.js         # Authentication state
-│   └── utils/
-│       ├── constants.js           # App constants
-│       └── helpers.js             # Utility functions
-├── assets/
-│   ├── images/
-│   ├── fonts/
-│   └── sounds/
+│   ├── components/                # Reusable components (Shared icons, etc.)
+│   ├── context/                   # AuthContext, ThemeContext
+│   ├── i18n/                      # Translations (en.json, hi.json)
+│   ├── hooks/                     # Firebase and theme hooks
+│   ├── services/                  # Firestore and notifications logic
+│   ├── styles/                    # Design tokens & dynamic styles
+│   └── utils/                     # Helper functions
+├── assets/                        # Design assets
+├── .env.example                   # Environment template
 ├── app.json                       # Expo configuration
 ├── package.json
 ├── google-services.json           # Android Firebase config
-├── GoogleService-Info.plist       # iOS Firebase config
-└── Dockerfile
+└── GoogleService-Info.plist       # iOS Firebase config
 ```
 
 ## 🧪 Testing

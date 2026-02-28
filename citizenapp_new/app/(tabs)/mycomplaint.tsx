@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-    SafeAreaView,
     View,
     Text,
     StyleSheet,
@@ -9,20 +8,20 @@ import {
     TouchableOpacity,
     RefreshControl,
     ActivityIndicator,
-    Platform,
     ScrollView,
-    StatusBar,
     Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useFirebase } from '../../src/hooks/useFirebase';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { IconClock, IconMapPin, IconMessageSquare } from '../../src/components/Icons';
-import { colors } from '../../src/styles/colors';
 import { typography } from '../../src/styles/typography';
-import { moderateScale, scale, verticalScale } from '../../src/utils/responsive';
+import { moderateScale } from '../../src/utils/responsive';
+import { useTheme } from '../../src/context/ThemeContext';
 
 type UserIssue = {
     id: string;
@@ -48,7 +47,9 @@ const MyComplaintScreen = () => {
     const { db } = useFirebase();
     const { user } = useAuth();
     const { t } = useTranslation();
+    const { colors, isDark } = useTheme();
     const router = useRouter();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
     const [issues, setIssues] = useState<UserIssue[]>([]);
     const [loading, setLoading] = useState(true);
@@ -101,11 +102,11 @@ const MyComplaintScreen = () => {
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'Open':
-                return { container: { backgroundColor: '#FEE2E2' }, text: { color: colors.error } };
+                return { container: { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }, text: { color: colors.error } };
             case 'In Progress':
-                return { container: { backgroundColor: '#FEF3C7' }, text: { color: colors.warning } };
+                return { container: { backgroundColor: isDark ? '#3B2A0A' : '#FEF3C7' }, text: { color: colors.warning } };
             case 'Resolved':
-                return { container: { backgroundColor: '#D1FAE5' }, text: { color: colors.success } };
+                return { container: { backgroundColor: isDark ? '#064E3B' : '#D1FAE5' }, text: { color: colors.success } };
             default:
                 return { container: {}, text: {} };
         }
@@ -113,22 +114,20 @@ const MyComplaintScreen = () => {
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'Critical': return '#DC2626';
-            case 'High': return '#EA580C';
-            case 'Medium': return '#2563EB';
-            case 'Low': return '#059669';
-            default: return '#6B7280';
+            case 'Critical': return colors.error;
+            case 'High': return '#F97316';
+            case 'Medium': return colors.primary;
+            case 'Low': return colors.success;
+            default: return colors.textMuted;
         }
     };
 
     const formatDate = (timestamp: Timestamp) => {
         try {
-            return timestamp.toDate().toLocaleDateString('en-US', {
+            return timestamp.toDate().toLocaleDateString(undefined, {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
             });
         } catch {
             return t('myComplaints.unknownDate');
@@ -141,7 +140,6 @@ const MyComplaintScreen = () => {
 
     const onRefresh = () => {
         setRefreshing(true);
-        // The real-time listener will automatically refresh the data
     };
 
     const renderIssue = ({ item }: { item: UserIssue }) => {
@@ -150,8 +148,7 @@ const MyComplaintScreen = () => {
 
         return (
             <TouchableOpacity style={styles.issueCard} onPress={() => handleIssuePress(item)}>
-                {/* Issue Image */}
-                {item.imageBase64 || item.imageUri ? (
+                {(item.imageBase64 || item.imageUri) ? (
                     <Image
                         source={{
                             uri: item.imageBase64 ?
@@ -162,12 +159,11 @@ const MyComplaintScreen = () => {
                     />
                 ) : (
                     <View style={styles.imagePlaceholder}>
-                        <Text style={styles.imagePlaceholderText}>{t('myComplaints.noImage')}</Text>
+                        <Text style={[styles.imagePlaceholderText, { color: colors.textMuted }]}>{t('myComplaints.noImage')}</Text>
                     </View>
                 )}
 
                 <View style={styles.issueDetails}>
-                    {/* Header */}
                     <View style={styles.issueHeader}>
                         <Text style={styles.issueTitle} numberOfLines={1}>
                             {item.title}
@@ -179,9 +175,8 @@ const MyComplaintScreen = () => {
                         </View>
                     </View>
 
-                    {/* Category and Priority */}
                     <View style={styles.issueMetadata}>
-                        <Text style={styles.categoryText}>
+                        <Text style={[styles.categoryText, { color: colors.textSecondary }]}>
                             {t(`categories.${item.category.toLowerCase().replace(' ', '')}`)}
                         </Text>
                         <View style={styles.priorityContainer}>
@@ -192,43 +187,39 @@ const MyComplaintScreen = () => {
                         </View>
                     </View>
 
-                    {/* Description */}
-                    <Text style={styles.issueDescription} numberOfLines={2}>
+                    <Text style={[styles.issueDescription, { color: colors.textSecondary }]} numberOfLines={2}>
                         {item.description}
                     </Text>
 
-                    {/* Admin Notes */}
                     {item.adminNotes && (
-                        <View style={styles.adminNotesContainer}>
-                            <IconMessageSquare />
-                            <Text style={styles.adminNotesText} numberOfLines={1}>
+                        <View style={[styles.adminNotesContainer, { backgroundColor: isDark ? '#1E293B' : '#F0FDF4' }]}>
+                            <IconMessageSquare color={isDark ? colors.success : '#166534'} />
+                            <Text style={[styles.adminNotesText, { color: isDark ? colors.success : '#166534' }]} numberOfLines={1}>
                                 {t('myComplaints.adminLabel')}{item.adminNotes}
                             </Text>
                         </View>
                     )}
 
-                    {/* Footer */}
                     <View style={styles.issueFooter}>
                         <View style={styles.dateContainer}>
-                            <IconClock />
-                            <Text style={styles.dateText}>
+                            <IconClock color={colors.textMuted} />
+                            <Text style={[styles.dateText, { color: colors.textMuted }]}>
                                 {formatDate(item.reportedAt)}
                             </Text>
                         </View>
 
                         {item.location && (
                             <View style={styles.locationContainer}>
-                                <IconMapPin />
-                                <Text style={styles.locationText} numberOfLines={1}>
+                                <IconMapPin color={colors.textMuted} />
+                                <Text style={[styles.locationText, { color: colors.textMuted }]} numberOfLines={1}>
                                     {item.location.address}
                                 </Text>
                             </View>
                         )}
                     </View>
 
-                    {/* Department */}
                     {item.assignedDepartment && (
-                        <Text style={styles.departmentText}>
+                        <Text style={[styles.departmentText, { color: colors.primary }]}>
                             {t('myComplaints.assignedTo')}{item.assignedDepartment}
                         </Text>
                     )}
@@ -240,9 +231,10 @@ const MyComplaintScreen = () => {
     if (loading) {
         return (
             <SafeAreaView style={styles.container}>
+                <StatusBar style={isDark ? 'light' : 'dark'} />
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#2563EB" />
-                    <Text style={styles.loadingText}>{t('myComplaints.loading')}</Text>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={[styles.loadingText, { color: colors.textMuted }]}>{t('myComplaints.loading')}</Text>
                 </View>
             </SafeAreaView>
         );
@@ -251,10 +243,9 @@ const MyComplaintScreen = () => {
     const filteredIssues = getFilteredIssues();
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
 
-            {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>{t('myComplaints.title')}</Text>
                 <Text style={styles.headerSubtitle}>
@@ -262,7 +253,6 @@ const MyComplaintScreen = () => {
                 </Text>
             </View>
 
-            {/* Filter Tabs */}
             <View style={{ backgroundColor: colors.surface }}>
                 <ScrollView
                     horizontal
@@ -270,22 +260,22 @@ const MyComplaintScreen = () => {
                     contentContainerStyle={styles.filterScrollContent}
                 >
                     {[
-                        { key: 'all', label: 'All', count: issues.length },
-                        { key: 'open', label: 'Open', count: issues.filter(i => i.status === 'Open').length },
-                        { key: 'in-progress', label: 'In Progress', count: issues.filter(i => i.status === 'In Progress').length },
-                        { key: 'resolved', label: 'Resolved', count: issues.filter(i => i.status === 'Resolved').length },
+                        { key: 'all' as const, label: t('myComplaints.tabs.all'), count: issues.length },
+                        { key: 'open' as const, label: t('myComplaints.tabs.open'), count: issues.filter(i => i.status === 'Open').length },
+                        { key: 'in-progress' as const, label: t('myComplaints.tabs.inProgress'), count: issues.filter(i => i.status === 'In Progress').length },
+                        { key: 'resolved' as const, label: t('myComplaints.tabs.resolved'), count: issues.filter(i => i.status === 'Resolved').length },
                     ].map((tab) => (
                         <TouchableOpacity
                             key={tab.key}
                             style={[
                                 styles.filterTab,
-                                filter === tab.key && styles.filterTabActive
+                                filter === tab.key && { borderColor: colors.primary, backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }
                             ]}
-                            onPress={() => setFilter(tab.key as any)}
+                            onPress={() => setFilter(tab.key)}
                         >
                             <Text style={[
                                 styles.filterTabText,
-                                filter === tab.key && styles.filterTabTextActive
+                                filter === tab.key && { color: colors.primary, fontWeight: 'bold' }
                             ]}>
                                 {tab.label} ({tab.count})
                             </Text>
@@ -294,23 +284,22 @@ const MyComplaintScreen = () => {
                 </ScrollView>
             </View>
 
-            {/* Issues List */}
             {filteredIssues.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyTitle}>
+                    <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
                         {filter === 'all'
                             ? t('myComplaints.empty.title')
-                            : t('myComplaints.empty.titleWithFilter', { filter: filter.replace('-', ' ') })}
+                            : t('myComplaints.empty.titleWithFilter', { filter: t(`myComplaints.tabs.${filter === 'in-progress' ? 'inProgress' : filter}`) })}
                     </Text>
-                    <Text style={styles.emptyText}>
+                    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                         {filter === 'all'
                             ? t('myComplaints.empty.subtitle')
-                            : t('myComplaints.empty.subtitleWithFilter', { filter: filter.replace('-', ' ') })
+                            : t('myComplaints.empty.subtitleWithFilter', { filter: t(`myComplaints.tabs.${filter === 'in-progress' ? 'inProgress' : filter}`) })
                         }
                     </Text>
                     {filter === 'all' && (
                         <TouchableOpacity
-                            style={styles.reportButton}
+                            style={[styles.reportButton, { backgroundColor: colors.primary }]}
                             onPress={() => router.push('/report')}
                         >
                             <Text style={styles.reportButtonText}>{t('myComplaints.empty.button')}</Text>
@@ -323,7 +312,7 @@ const MyComplaintScreen = () => {
                     renderItem={renderIssue}
                     keyExtractor={(item) => item.id}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
                     }
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listContainer}
@@ -333,7 +322,7 @@ const MyComplaintScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
@@ -346,13 +335,11 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         ...typography.body,
-        color: colors.textMuted,
         fontSize: moderateScale(16),
     },
     header: {
         backgroundColor: colors.primary,
         padding: moderateScale(24),
-        paddingBottom: moderateScale(20),
     },
     headerTitle: {
         ...typography.h2,
@@ -379,19 +366,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
     },
-    filterTabActive: {
-        backgroundColor: '#EFF6FF',
-        borderColor: colors.primary,
-    },
     filterTabText: {
         ...typography.caption,
         fontSize: moderateScale(13),
         textAlign: 'center',
         color: colors.textMuted,
-    },
-    filterTabTextActive: {
-        color: colors.primary,
-        fontWeight: 'bold',
     },
     listContainer: {
         padding: moderateScale(16),
@@ -400,16 +379,11 @@ const styles = StyleSheet.create({
     issueCard: {
         backgroundColor: colors.surface,
         borderRadius: moderateScale(12),
-        padding: moderateScale(16),
+        padding: moderateScale(12),
         flexDirection: 'row',
         gap: moderateScale(12),
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
     },
     issueImage: {
         width: moderateScale(80),
@@ -420,7 +394,7 @@ const styles = StyleSheet.create({
         width: moderateScale(80),
         height: moderateScale(80),
         borderRadius: moderateScale(8),
-        backgroundColor: '#F3F4F6',
+        backgroundColor: isDark ? '#1E293B' : '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -431,29 +405,29 @@ const styles = StyleSheet.create({
     },
     issueDetails: {
         flex: 1,
-        gap: moderateScale(6),
+        gap: moderateScale(4),
     },
     issueHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
     },
     issueTitle: {
         ...typography.body,
         fontWeight: 'bold',
-        fontSize: moderateScale(16),
+        fontSize: moderateScale(15),
         color: colors.textPrimary,
         flex: 1,
         marginRight: moderateScale(8),
     },
     statusBadge: {
         paddingHorizontal: moderateScale(8),
-        paddingVertical: moderateScale(4),
-        borderRadius: moderateScale(12),
+        paddingVertical: moderateScale(2),
+        borderRadius: moderateScale(6),
     },
     statusText: {
         fontSize: moderateScale(10),
-        fontWeight: '600',
+        fontWeight: '700',
     },
     issueMetadata: {
         flexDirection: 'row',
@@ -476,24 +450,21 @@ const styles = StyleSheet.create({
     },
     priorityText: {
         ...typography.caption,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     issueDescription: {
         ...typography.bodySmall,
-        lineHeight: moderateScale(18),
         fontSize: moderateScale(13),
     },
     adminNotesContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: moderateScale(6),
-        backgroundColor: '#F0FDF4',
         padding: moderateScale(8),
         borderRadius: moderateScale(6),
     },
     adminNotesText: {
         ...typography.caption,
-        color: '#166534',
         flex: 1,
         fontStyle: 'italic',
     },
@@ -510,6 +481,7 @@ const styles = StyleSheet.create({
     },
     dateText: {
         ...typography.caption,
+        fontSize: moderateScale(11),
     },
     locationContainer: {
         flexDirection: 'row',
@@ -521,10 +493,10 @@ const styles = StyleSheet.create({
     locationText: {
         ...typography.caption,
         flex: 1,
+        fontSize: moderateScale(11),
     },
     departmentText: {
         ...typography.caption,
-        color: colors.primary,
         fontWeight: '500',
         marginTop: moderateScale(4),
     },
@@ -542,17 +514,16 @@ const styles = StyleSheet.create({
     emptyText: {
         ...typography.body,
         textAlign: 'center',
-        lineHeight: moderateScale(22),
         marginBottom: moderateScale(24),
     },
     reportButton: {
-        backgroundColor: colors.primary,
         paddingHorizontal: moderateScale(24),
         paddingVertical: moderateScale(12),
         borderRadius: moderateScale(8),
     },
     reportButtonText: {
         ...typography.button,
+        color: '#FFFFFF',
     },
 });
 

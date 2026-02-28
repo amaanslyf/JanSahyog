@@ -5,7 +5,6 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    StatusBar,
     Alert,
     Image,
     ScrollView,
@@ -14,6 +13,7 @@ import {
     Linking,
     Switch,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useFirebase } from '../../src/hooks/useFirebase';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../../src/context/AuthContext';
@@ -47,7 +47,7 @@ type UserStats = {
 
 const ProfileScreen = () => {
     const { auth, db } = useFirebase();
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const { t, i18n: i18nInstance } = useTranslation();
     const { colors, isDark, toggleTheme } = useTheme();
     const styles = useMemo(() => getStyles({ ...colors, isDark }), [colors, isDark]);
@@ -65,7 +65,7 @@ const ProfileScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Language dropdown
+    // Language dropdown - must be before early returns (Rules of Hooks)
     const [open, setOpen] = useState(false);
     const [value, setValue] = useState(i18nInstance.language);
     const [items, setItems] = useState([
@@ -167,20 +167,26 @@ const ProfileScreen = () => {
         return email.substring(0, 2).toUpperCase();
     };
 
-    if (loading) {
+    // Early returns AFTER all hooks (React Rules of Hooks)
+    if (loading || authLoading) {
         return (
             <SafeAreaView style={styles.container}>
+                <StatusBar style={isDark ? 'light' : 'dark'} />
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#2563EB" />
-                    <Text style={styles.loadingText}>{t('profile.loading')}</Text>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={[styles.loadingText, { color: colors.textMuted }]}>{t('profile.loading')}</Text>
                 </View>
             </SafeAreaView>
         );
     }
 
+    if (!user) {
+        return null;
+    }
+
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? 'light' : 'dark'} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -198,7 +204,7 @@ const ProfileScreen = () => {
                             ) : (
                                 <View style={styles.avatarPlaceholder}>
                                     <Text style={styles.avatarText}>
-                                        {getInitials(user?.email || 'User')}
+                                        {getInitials(user?.displayName || user?.email || 'User')}
                                     </Text>
                                 </View>
                             )}
@@ -219,9 +225,9 @@ const ProfileScreen = () => {
                     </View>
 
                     {/* Points Section */}
-                    <View style={styles.pointsContainer}>
-                        <Text style={styles.pointsNumber}>{userStats.points}</Text>
-                        <Text style={styles.pointsLabel}>{t('profile.civicPoints')}</Text>
+                    <View style={[styles.pointsContainer, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}>
+                        <Text style={[styles.pointsNumber, { color: colors.primary }]}>{userStats.points}</Text>
+                        <Text style={[styles.pointsLabel, { color: colors.textSecondary }]}>{t('profile.civicPoints')}</Text>
                     </View>
                 </View>
 
@@ -313,7 +319,7 @@ const ProfileScreen = () => {
                         style={styles.actionButton}
                         onPress={() => Linking.openURL('https://jansahyog.example.com/privacy')}
                     >
-                        <IconShield size={20} />
+                        <IconShield size={20} color={colors.textPrimary} />
                         <Text style={styles.actionButtonText}>{t('profile.privacyPolicy')}</Text>
                         <Text style={styles.actionButtonArrow}>→</Text>
                     </TouchableOpacity>
@@ -321,7 +327,7 @@ const ProfileScreen = () => {
                     {/* Dark Mode Toggle */}
                     <View style={styles.actionButton}>
                         <IconShield size={20} color={colors.primary} />
-                        <Text style={styles.actionButtonText}>{t('profile.darkMode') || "Dark Mode"}</Text>
+                        <Text style={styles.actionButtonText}>{t('profile.darkMode')}</Text>
                         <Switch
                             value={isDark}
                             onValueChange={toggleTheme}

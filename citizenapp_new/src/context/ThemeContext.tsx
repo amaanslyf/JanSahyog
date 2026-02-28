@@ -43,16 +43,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     };
 
-    const toggleTheme = () => {
-        const nextTheme = isDark ? 'light' : 'dark';
-        setTheme(nextTheme);
-    };
-
     const isDark = theme === 'system'
         ? systemColorScheme === 'dark'
         : theme === 'dark';
 
+    const toggleTheme = () => {
+        // Re-derive dark state inline to avoid stale closure
+        const currentlyDark = theme === 'system'
+            ? systemColorScheme === 'dark'
+            : theme === 'dark';
+        setTheme(currentlyDark ? 'light' : 'dark');
+    };
+
     const currentColors = isDark ? darkTheme : lightTheme;
+
 
     return (
         <ThemeContext.Provider value={{ theme, colors: currentColors, isDark, setTheme, toggleTheme }}>

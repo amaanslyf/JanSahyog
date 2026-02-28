@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     SafeAreaView,
     View,
@@ -6,13 +6,13 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    StatusBar,
-    ActivityIndicator,
-    KeyboardAvoidingView,
     Platform,
     Alert,
     Animated,
+    KeyboardAvoidingView,
+    ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -24,7 +24,7 @@ import { useRouter } from 'expo-router';
 import { useFirebase } from '../src/hooks/useFirebase';
 import { useTranslation } from 'react-i18next';
 import { IconShield, IconMail, IconLock, IconEye, IconEyeOff } from '../src/components/Icons';
-import { colors, darkTheme } from '../src/styles/colors';
+import { useTheme } from '../src/context/ThemeContext';
 import { typography } from '../src/styles/typography';
 
 const LoginScreen = () => {
@@ -39,6 +39,8 @@ const LoginScreen = () => {
     const router = useRouter();
     const { auth, db } = useFirebase();
     const { t } = useTranslation();
+    const { colors, isDark } = useTheme();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
     // Animation values
     const [fadeAnim] = useState(new Animated.Value(0));
@@ -131,10 +133,10 @@ const LoginScreen = () => {
             console.log('Account created and profile synced!', user);
 
             Alert.alert(
-                'Welcome! 🎉',
-                'Your account has been created successfully. You can now start reporting civic issues and make your city better!',
+                t('auth.registerSuccessTitle'),
+                t('auth.registerSuccessMessage'),
                 [{
-                    text: 'Get Started', onPress: () => {
+                    text: t('common.getStarted'), onPress: () => {
                         // Small delay to ensure layout is ready
                         setTimeout(() => router.replace('/(tabs)/home'), 100);
                     }
@@ -191,7 +193,8 @@ const LoginScreen = () => {
 
             await createUserProfile(user);
 
-            router.replace('/(tabs)/home');
+            // Small delay to ensure layout is ready
+            setTimeout(() => router.replace('/(tabs)/home'), 100);
 
         } catch (err: any) {
             console.error('Login error:', err);
@@ -250,7 +253,7 @@ const LoginScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar style="light" />
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.keyboardView}
@@ -267,15 +270,15 @@ const LoginScreen = () => {
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.iconContainer}>
-                            <IconShield />
+                            <IconShield color={colors.primary} size={40} />
                         </View>
                         <Text style={styles.title}>
-                            {isSignUp ? 'Create Account' : 'Welcome Back'}
+                            {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
                         </Text>
                         <Text style={styles.subtitle}>
                             {isSignUp
-                                ? 'Join thousands making cities better'
-                                : 'Sign in to continue reporting issues'
+                                ? t('auth.signupSubtitle')
+                                : t('auth.loginSubtitle')
                             }
                         </Text>
                     </View>
@@ -292,12 +295,12 @@ const LoginScreen = () => {
                         {/* Email Input */}
                         <View style={styles.inputContainer}>
                             <View style={styles.inputIcon}>
-                                <IconMail />
+                                <IconMail color={colors.textMuted} size={20} />
                             </View>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Email address"
-                                placeholderTextColor="#9CA3AF"
+                                placeholder={t('auth.emailPlaceholder')}
+                                placeholderTextColor={colors.textMuted}
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"
@@ -309,12 +312,12 @@ const LoginScreen = () => {
                         {/* Password Input */}
                         <View style={styles.inputContainer}>
                             <View style={styles.inputIcon}>
-                                <IconLock />
+                                <IconLock color={colors.textMuted} size={20} />
                             </View>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Password"
-                                placeholderTextColor="#9CA3AF"
+                                placeholder={t('auth.passwordPlaceholder')}
+                                placeholderTextColor={colors.textMuted}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry={!showPassword}
@@ -324,7 +327,7 @@ const LoginScreen = () => {
                                 style={styles.eyeIcon}
                                 onPress={() => setShowPassword(!showPassword)}
                             >
-                                {showPassword ? <IconEyeOff /> : <IconEye />}
+                                {showPassword ? <IconEyeOff color={colors.textMuted} size={20} /> : <IconEye color={colors.textMuted} size={20} />}
                             </TouchableOpacity>
                         </View>
 
@@ -332,12 +335,12 @@ const LoginScreen = () => {
                         {isSignUp && (
                             <View style={styles.inputContainer}>
                                 <View style={styles.inputIcon}>
-                                    <IconLock />
+                                    <IconLock color={colors.textMuted} size={20} />
                                 </View>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Confirm password"
-                                    placeholderTextColor="#9CA3AF"
+                                    placeholder={t('auth.confirmPasswordPlaceholder')}
+                                    placeholderTextColor={colors.textMuted}
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
                                     secureTextEntry={!showConfirmPassword}
@@ -346,7 +349,7 @@ const LoginScreen = () => {
                                     style={styles.eyeIcon}
                                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                                 >
-                                    {showConfirmPassword ? <IconEyeOff /> : <IconEye />}
+                                    {showConfirmPassword ? <IconEyeOff color={colors.textMuted} size={20} /> : <IconEye color={colors.textMuted} size={20} />}
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -358,7 +361,7 @@ const LoginScreen = () => {
                                 onPress={handlePasswordReset}
                             >
                                 <Text style={styles.forgotPasswordText}>
-                                    Forgot your password?
+                                    {t('auth.forgotPassword')}
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -368,9 +371,9 @@ const LoginScreen = () => {
                     <View style={styles.buttonContainer}>
                         {loading ? (
                             <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color="#2563EB" />
+                                <ActivityIndicator size="large" color={colors.primary} />
                                 <Text style={styles.loadingText}>
-                                    {isSignUp ? 'Creating account...' : 'Signing in...'}
+                                    {isSignUp ? t('auth.creatingAccount') : t('auth.signingIn')}
                                 </Text>
                             </View>
                         ) : (
@@ -380,20 +383,20 @@ const LoginScreen = () => {
                                     onPress={isSignUp ? handleSignUp : handleLogin}
                                 >
                                     <Text style={styles.primaryButtonText}>
-                                        {isSignUp ? 'Create Account' : 'Sign In'}
+                                        {isSignUp ? t('auth.createAccount') : t('auth.signIn')}
                                     </Text>
                                 </TouchableOpacity>
 
                                 <View style={styles.switchModeContainer}>
                                     <Text style={styles.switchModeText}>
                                         {isSignUp
-                                            ? 'Already have an account? '
-                                            : "Don't have an account? "
+                                            ? t('auth.alreadyHaveAccount')
+                                            : t('auth.dontHaveAccount')
                                         }
                                     </Text>
                                     <TouchableOpacity onPress={toggleMode}>
                                         <Text style={styles.switchModeLink}>
-                                            {isSignUp ? 'Sign In' : 'Sign Up'}
+                                            {isSignUp ? t('auth.signIn') : t('auth.signUp')}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
@@ -406,10 +409,10 @@ const LoginScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: darkTheme.background,
+        backgroundColor: colors.background,
     },
     keyboardView: {
         flex: 1,
@@ -424,7 +427,7 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     iconContainer: {
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+        backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)',
         padding: 20,
         borderRadius: 20,
         marginBottom: 20,
@@ -432,7 +435,7 @@ const styles = StyleSheet.create({
     title: {
         ...typography.h2,
         fontSize: 28,
-        color: colors.white,
+        color: colors.textPrimary,
         marginBottom: 8,
         textAlign: 'center',
     },
@@ -442,7 +445,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     errorContainer: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)',
         borderRadius: 8,
         padding: 12,
         marginBottom: 20,
@@ -460,19 +463,19 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: darkTheme.surface,
+        backgroundColor: isDark ? '#1E293B' : '#F9FAFB',
         borderRadius: 12,
         marginBottom: 16,
         paddingHorizontal: 16,
         borderWidth: 1,
-        borderColor: darkTheme.border,
+        borderColor: colors.border,
     },
     inputIcon: {
         marginRight: 12,
     },
     input: {
         flex: 1,
-        color: colors.white,
+        color: colors.textPrimary,
         fontSize: 16,
         paddingVertical: 16,
     },

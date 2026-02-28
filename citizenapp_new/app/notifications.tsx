@@ -6,22 +6,24 @@ import {
     StyleSheet,
     FlatList,
     TouchableOpacity,
-    StatusBar,
     ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { IconBell, IconChevronLeft, IconCheckCircle, IconX } from '../src/components/Icons';
-import { colors } from '../src/styles/colors';
 import { typography } from '../src/styles/typography';
-import { moderateScale, scale, verticalScale } from '../src/utils/responsive';
+import { moderateScale } from '../src/utils/responsive';
+import { useTheme } from '../src/context/ThemeContext';
 import { Timestamp } from 'firebase/firestore';
 
 const NotificationsScreen = () => {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors, isDark } = useTheme();
     const { notifications, unreadNotifications, notificationService, isLoading } = useAuth();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
     const handleMarkAllRead = async () => {
         if (notificationService) {
@@ -62,8 +64,8 @@ const NotificationsScreen = () => {
             style={[styles.notificationItem, !item.read && styles.unreadItem]}
             onPress={() => handleNotificationPress(item)}
         >
-            <View style={[styles.iconContainer, { backgroundColor: item.read ? '#F3F4F6' : '#EFF6FF' }]}>
-                <IconBell hasNotifications={!item.read} color={item.read ? '#6B7280' : colors.primary} size={20} />
+            <View style={[styles.iconContainer, { backgroundColor: item.read ? (isDark ? '#1E293B' : '#F3F4F6') : (isDark ? '#1E293B' : '#EFF6FF') }]}>
+                <IconBell hasNotifications={!item.read} color={item.read ? colors.textMuted : colors.primary} size={20} />
             </View>
             <View style={styles.textContainer as any}>
                 <View style={styles.notificationHeader}>
@@ -92,7 +94,7 @@ const NotificationsScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? 'light' : 'dark'} />
             <Stack.Screen
                 options={{
                     headerShown: false,
@@ -102,7 +104,7 @@ const NotificationsScreen = () => {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <IconChevronLeft color="#1F2937" size={24} />
+                    <IconChevronLeft color={colors.textPrimary} size={24} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
                 {unreadNotifications > 0 ? (
@@ -132,10 +134,10 @@ const NotificationsScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: colors.background,
     },
     centered: {
         flex: 1,
@@ -146,20 +148,19 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: scale(16),
-        paddingVertical: verticalScale(16),
-        backgroundColor: '#FFFFFF',
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(16),
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: colors.border,
     },
     backButton: {
-        padding: scale(4),
+        padding: moderateScale(4),
     },
     headerTitle: {
         fontSize: moderateScale(18),
         fontWeight: '700',
-        color: '#1F2937',
-        fontFamily: typography.semiBold,
+        color: colors.textPrimary,
     },
     markReadText: {
         fontSize: moderateScale(12),
@@ -167,27 +168,27 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     listContent: {
-        paddingVertical: verticalScale(8),
+        paddingVertical: moderateScale(8),
     },
     notificationItem: {
         flexDirection: 'row',
-        paddingHorizontal: scale(16),
-        paddingVertical: verticalScale(16),
-        backgroundColor: '#FFFFFF',
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateScale(16),
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        borderBottomColor: colors.border,
         alignItems: 'center',
     },
     unreadItem: {
-        backgroundColor: '#F0F7FF',
+        backgroundColor: isDark ? '#1E293B' : '#F0F7FF',
     },
     iconContainer: {
-        width: scale(40),
-        height: scale(40),
-        borderRadius: scale(20),
+        width: moderateScale(40),
+        height: moderateScale(40),
+        borderRadius: moderateScale(20),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: scale(12),
+        marginRight: moderateScale(12),
     },
     textContainer: {
         flex: 1,
@@ -196,53 +197,55 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: verticalScale(4),
+        marginBottom: moderateScale(4),
     },
     notificationTitle: {
         fontSize: moderateScale(15),
         fontWeight: '600',
-        color: '#374151',
+        color: colors.textPrimary,
         flex: 1,
-        marginRight: scale(8),
+        marginRight: moderateScale(8),
     },
     unreadTitle: {
-        color: '#111827',
+        color: colors.textPrimary,
         fontWeight: '700',
     },
     timeText: {
         fontSize: moderateScale(11),
-        color: '#9CA3AF',
+        color: colors.textMuted,
     },
     notificationBody: {
         fontSize: moderateScale(13),
-        color: '#6B7280',
+        color: colors.textSecondary,
         lineHeight: moderateScale(18),
     },
     unreadDot: {
-        width: scale(8),
-        height: scale(8),
-        borderRadius: scale(4),
+        width: moderateScale(8),
+        height: moderateScale(8),
+        borderRadius: moderateScale(4),
         backgroundColor: colors.primary,
-        marginLeft: scale(8),
+        marginLeft: moderateScale(8),
     },
     emptyContainer: {
-        marginTop: verticalScale(100),
+        marginTop: moderateScale(100),
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: scale(40),
+        paddingHorizontal: moderateScale(40),
     },
     emptyIconBg: {
-        width: scale(100),
-        height: scale(100),
-        borderRadius: scale(50),
-        backgroundColor: '#F3F4F6',
+        width: moderateScale(100),
+        height: moderateScale(100),
+        borderRadius: moderateScale(50),
+        backgroundColor: colors.surface,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: verticalScale(16),
+        marginBottom: moderateScale(16),
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     emptyText: {
         fontSize: moderateScale(16),
-        color: '#6B7280',
+        color: colors.textMuted,
         textAlign: 'center',
     },
 });

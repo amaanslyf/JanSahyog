@@ -342,6 +342,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     await initializeNotifications(user.uid);
                 }
             } else {
+                // Clean up profile listener before clearing state
+                if (profileUnsubscribeRef.current) {
+                    profileUnsubscribeRef.current();
+                    profileUnsubscribeRef.current = null;
+                }
                 setUserProfile(null);
                 cleanupNotifications();
             }

@@ -30,12 +30,12 @@ const languageDetector = {
                 console.log(`🌐 Using stored language: ${storedLanguage}`);
                 return callback(storedLanguage);
             }
-            
+
             // If no language is stored, use the device's locale
             const deviceLocales = Localization.getLocales();
             const deviceLanguage = deviceLocales[0]?.languageCode || 'en';
             const supportedLanguage = Object.keys(resources).includes(deviceLanguage) ? deviceLanguage : 'en';
-            
+
             console.log(`🌐 Using device language: ${supportedLanguage}`);
             return callback(supportedLanguage);
         } catch (error) {
@@ -43,7 +43,7 @@ const languageDetector = {
             return callback('en'); // Fallback to English on error
         }
     },
-    init: () => {},
+    init: () => { },
     cacheUserLanguage: async (language: string) => {
         try {
             console.log(`💾 Saving language preference: ${language}`);
@@ -77,8 +77,10 @@ const initializeI18n = async () => {
     }
 };
 
-// Initialize immediately
-initializeI18n();
+// Initialize if not already initialized
+if (!i18next.isInitialized) {
+    initializeI18n();
+}
 
 // Export helpful functions
 export const getCurrentLanguage = () => i18next.language;

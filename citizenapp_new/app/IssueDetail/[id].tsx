@@ -7,11 +7,11 @@ import {
     Image,
     TouchableOpacity,
     SafeAreaView,
-    StatusBar,
     ActivityIndicator,
     Linking,
     Alert
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { useFirebase } from '../../src/hooks/useFirebase';
@@ -419,9 +419,9 @@ const IssueDetailScreen = () => {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case 'Resolved': return { bg: '#DCFCE7', text: colors.success };
-            case 'In Progress': return { bg: '#FEF9C3', text: colors.warning };
-            default: return { bg: '#FEE2E2', text: colors.error };
+            case 'Resolved': return { bg: isDark ? '#064E3B' : '#DCFCE7', text: colors.success };
+            case 'In Progress': return { bg: isDark ? '#3B2A0A' : '#FEF9C3', text: colors.warning };
+            default: return { bg: isDark ? '#450A0A' : '#FEE2E2', text: colors.error };
         }
     };
 
@@ -458,13 +458,13 @@ const IssueDetailScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? 'light' : 'dark'} />
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <IconArrowLeft size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{t('issueDetail.headerTitle') || "Issue Details"}</Text>
+                <Text style={styles.headerTitle}>{t('issueDetail.title')}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -501,9 +501,9 @@ const IssueDetailScreen = () => {
                         <View style={styles.upvoteLeft}>
                             <IconTrendingUp size={24} color={isUpvoted ? colors.primary : colors.textSecondary} />
                             <View>
-                                <Text style={styles.upvoteTitle}>{t('issueDetail.supportTitle') || "Support this Issue"}</Text>
+                                <Text style={styles.upvoteTitle}>{t('issueDetail.supportTitle')}</Text>
                                 <Text style={styles.upvoteCount}>
-                                    {(issue.upvotes || 0)} {t('issueDetail.upvotesCount') || "citizens supported this"}
+                                    {t('issueDetail.supportCount', { count: issue.upvotes || 0 })}
                                 </Text>
                             </View>
                         </View>
@@ -516,7 +516,7 @@ const IssueDetailScreen = () => {
                                 <ActivityIndicator size="small" color={isUpvoted ? "#FFF" : colors.primary} />
                             ) : (
                                 <Text style={[styles.upvoteButtonText, isUpvoted && styles.upvoteButtonTextActive]}>
-                                    {isUpvoted ? t('issueDetail.supported') || "Supported" : t('issueDetail.support') || "Support"}
+                                    {isUpvoted ? t('issueDetail.supported') : t('issueDetail.support')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -604,7 +604,7 @@ const IssueDetailScreen = () => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>{t('issueDetail.location')}</Text>
                         <View style={styles.locationContainer}>
-                            <IconMapPin size={20} color="#6B7280" />
+                            <IconMapPin size={20} color={colors.textMuted} />
                             <Text style={styles.locationText}>{issue.location.address}</Text>
                         </View>
                         <TouchableOpacity

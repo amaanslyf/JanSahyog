@@ -1,4 +1,36 @@
 {
+  "welcome": {
+    "title": "JanSahyog",
+    "subtitle": "Your Voice, Your City, Your Impact",
+    "description": "Join thousands of citizens making their communities better through civic engagement and real-time issue reporting.",
+    "features": {
+      "report": {
+        "title": "Report Issues",
+        "description": "Take photos and report civic problems in your area instantly."
+      },
+      "track": {
+        "title": "Track Progress",
+        "description": "Monitor the status of your reports and see real-time updates."
+      },
+      "impact": {
+        "title": "Make Impact",
+        "description": "Earn points, climb the leaderboard, and make your city better."
+      }
+    },
+    "stats": {
+      "issues": "Issues Managed",
+      "citizens": "Active Citizens",
+      "city": "City"
+    },
+    "getStarted": "Get Started",
+    "ctaSubtext": "Join the movement • Free forever • Make a difference"
+  },
+  "nav": {
+    "home": "Home",
+    "report": "Report",
+    "myReports": "My Reports",
+    "profile": "Profile"
+  },
   "profile": {
     "title": "Profile",
     "loggedInAs": "Logged in as",
@@ -25,6 +57,7 @@
     "settings": "Settings",
     "settingsComingSoon": "Settings menu coming soon!",
     "privacyPolicy": "Privacy Policy",
+    "darkMode": "Dark Mode",
     "tagline": "Building better communities together"
   },
   "notifications": {
@@ -74,7 +107,10 @@
       "hours": "{{count}}h ago",
       "days": "{{count}}d ago",
       "recently": "Recently"
-    }
+    },
+    "error": "Error",
+    "helplineError": "Unable to make phone call",
+    "responderRole": "Verified Responder"
   },
   "myComplaints": {
     "title": "My Reports",
@@ -123,73 +159,57 @@
   "report": {
     "title": "Report an Issue",
     "subtitle": "Help improve your community by reporting civic issues",
-    "category": "Category *",
-    "selectCategory": "Select Category",
-    "priority": "Priority Level",
-    "description": "Description *",
-    "descriptionPlaceholder": "Provide detailed description of the issue...",
-    "addAttachments": "Add Attachments",
-    "uploadPhoto": "Upload Photo",
-    "fetchingLocation": "Getting location...",
-    "locationCaptured": "Location captured successfully",
-    "locationNotAvailable": "Location not available",
-    "submitComplaint": "Submit Complaint",
-    "success": "Success! 🎉",
-    "complaintSubmitted": "Your complaint with photo has been submitted successfully. You will receive updates on its progress.",
-    "complaintSavedOffline": "Complaint saved offline",
-    "complaintWillBeSubmitted": "Your complaint will be automatically submitted when you're back online.",
-    "submissionFailed": "Submission Failed",
-    "submissionError": "An error occurred. Please try again.",
-    "missingInfo": "Missing Information",
-    "missingInfoDetail": "Please select a category and provide description.",
-    "authError": "Authentication Error",
-    "authErrorDetail": "You need to be logged in.",
-    "permissionDenied": "Permission Denied",
-    "locationPermissionDenied": "Location access permission was denied.",
-    "cameraPermissionDenied": "Camera permission is required.",
-    "locationError": "Location Error",
-    "locationErrorDetail": "Could not get location.",
-    "selectImageTitle": "Select Image *",
-    "selectImageMessage": "Choose an option to add a photo of the issue (Required)",
-    "takePhoto": "Camera",
-    "chooseFromLibrary": "Gallery",
-    "cancel": "Cancel",
-    "selectedImage": "Selected Image",
-    "syncComplete": "Sync Complete",
-    "syncedOfflineComplaints": "Your offline complaints have been submitted.",
     "issueTitle": "Issue Title *",
     "issueTitlePlaceholder": "Brief title describing the issue",
-    "addPhoto": "Add Photo *",
-    "addPhotoRequired": "Add Photo (Required)",
-    "changePhoto": "Change Photo",
+    "category": "Category *",
+    "selectCategory": "Select Category",
+    "categoryPlaceholder": "Select a Category",
+    "categoryError": "Please select a category",
+    "priorityLabel": "Priority Level",
+    "description": "Description *",
+    "descriptionPlaceholder": "Provide detailed description of the issue...",
+    "titleError": "Title is required",
+    "descriptionError": "Description is required",
+    "fillRequiredFields": "Please fill all required fields",
+    "loginError": "You need to be logged in to report an issue",
+    "photoLabel": "Add Photo",
     "photoRequired": " (Required)",
-    "imageRequiredNote": "Photo is required to verify and process your complaint effectively",
-    "location": "Location",
-    "updateLocation": "Update Location",
-    "submitReport": "Submit Report",
-    "submitting": "Submitting...",
-    "successTitle": "Success!",
-    "failedTitle": "Submission Failed",
-    "validation": {
-      "titleRequired": "Title is required",
-      "descriptionRequired": "Description is required",
-      "categoryRequired": "Please select a category",
-      "imageRequired": "Please add a photo of the issue to submit your complaint",
-      "loginRequired": "Please login to submit complaints"
-    },
+    "photoNote": "Photo is required to verify and process your complaint effectively",
+    "addPhotoButton": "Add Photo",
+    "changePhotoButton": "Change Photo",
     "remove": "Remove",
     "imageReady": "✓ Image Ready",
+    "locationLabel": "Location Details",
+    "locationPlaceholder": "Your location will be captured automatically",
+    "updateLocationButton": "Update Current Location",
     "criticalWarning": "Critical issues will be prioritized for immediate attention",
+    "submitButton": "Submit Report",
+    "submittingButton": "Submitting...",
     "addPhotoToSubmit": "Add Photo to Submit",
-    "disclaimer": "Your report with photo will be reviewed by the relevant department and you'll receive updates on its progress. Photos help authorities understand and resolve issues faster.",
-    "imageTooLarge": "Image Too Large",
-    "imageTooLargeDetail": "Please choose a smaller image or use the camera to take a new photo.",
+    "footerInfo": "Your report will be reviewed by city authorities. Photos help authorities understand and resolve issues faster.",
+    "successTitle": "Success!",
+    "successMessage": "Your complaint has been submitted successfully. You will receive updates on its progress.",
+    "failedTitle": "Submission Failed",
+    "failedMessage": "An error occurred: {{error}}",
     "viewReports": "View My Reports",
     "reportAnother": "Report Another",
+    "selectImage": {
+      "title": "Select Image",
+      "subtitle": "Choose an option to add a photo of the issue (Required)",
+      "camera": "Camera",
+      "gallery": "Gallery"
+    },
     "permissions": {
-      "required": "Permissions Required",
-      "message": "Camera and media library permissions are needed to report issues with photos."
-    }
+      "cameraTitle": "Camera Permission Required",
+      "cameraMessage": "Camera and media library permissions are needed to report issues with photos."
+    },
+    "imageTooLarge": {
+      "title": "Image Too Large",
+      "message": "Please choose a smaller image or use the camera to take a new photo."
+    },
+    "processingError": "Failed to process image. Please try again.",
+    "cameraError": "Failed to open camera",
+    "galleryError": "Failed to open gallery"
   },
   "issueDetail": {
     "title": "Issue Details",
@@ -208,7 +228,12 @@
       "inProgress": "Work in Progress",
       "resolved": "Issue Resolved"
     },
-    "navigationError": "Unable to open navigation app"
+    "navigationError": "Unable to open navigation app",
+    "supportTitle": "Support this Issue",
+    "upvotesCount": "citizens supported this",
+    "supportCount": "{{count}} citizens supported this",
+    "supported": "Supported",
+    "support": "Support"
   },
   "leaderboard": {
     "title": "Leaderboard",
@@ -237,6 +262,7 @@
   "categories": {
     "garbage": "Garbage",
     "waterLeak": "Water Leak",
+    "waterleak": "Water Leak",
     "roads": "Roads",
     "streetlight": "Street Light",
     "pollution": "Pollution",
@@ -261,9 +287,25 @@
     "registerError": "Registration failed. Please try again.",
     "invalidEmail": "Please enter a valid email address",
     "weakPassword": "Password should be at least 6 characters",
-    "passwordMismatch": "Passwords do not match"
+    "passwordMismatch": "Passwords do not match",
+    "registerSuccessTitle": "Welcome! 🎉",
+    "registerSuccessMessage": "Your account has been created successfully. You can now start reporting civic issues and make your city better!",
+    "createAccount": "Create Account",
+    "welcomeBack": "Welcome Back",
+    "signupSubtitle": "Join thousands making cities better",
+    "loginSubtitle": "Sign in to continue reporting issues",
+    "emailPlaceholder": "Email address",
+    "passwordPlaceholder": "Password",
+    "confirmPasswordPlaceholder": "Confirm password",
+    "creatingAccount": "Creating account...",
+    "signingIn": "Signing in...",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "alreadyHaveAccount": "Already have an account? ",
+    "dontHaveAccount": "Don't have an account? "
   },
   "status": {
+    "open": "Open",
     "pending": "Pending",
     "inProgress": "In Progress",
     "resolved": "Resolved",

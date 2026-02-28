@@ -7,10 +7,10 @@ import {
     TextInput,
     FlatList,
     TouchableOpacity,
-    StatusBar,
     ActivityIndicator,
     ScrollView,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { collection, query, getDocs, orderBy, limit, where } from 'firebase/firestore';
@@ -19,7 +19,6 @@ import { IconSearch, IconChevronLeft, IconFilter, IconX, IconClock, IconActivity
 import { typography } from '../src/styles/typography';
 import { moderateScale, scale, verticalScale } from '../src/utils/responsive';
 import { useTheme } from '../src/context/ThemeContext';
-import { useMemo as useMemoReact } from 'react';
 
 const CATEGORIES = ['Road', 'Electricity', 'Water', 'Waste Management', 'Public Safety', 'Health', 'Education', 'Other'];
 const STATUSES = ['Open', 'In Progress', 'Resolved'];
@@ -29,7 +28,7 @@ const SearchScreen = () => {
     const { t } = useTranslation();
     const { db } = useFirebase();
     const { colors, isDark } = useTheme();
-    const styles = useMemoReact(() => getStyles({ ...colors, isDark }), [colors, isDark]);
+    const styles = useMemo(() => getStyles({ ...colors, isDark }), [colors, isDark]);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -112,7 +111,7 @@ const SearchScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? "light" : "dark"} />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Sticky Header with Search */}

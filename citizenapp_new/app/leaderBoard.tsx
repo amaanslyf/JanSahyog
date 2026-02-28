@@ -4,29 +4,21 @@ import {
     Text,
     SafeAreaView,
     StyleSheet,
-    StatusBar,
     FlatList,
     Image,
+    Alert,
     ActivityIndicator,
     RefreshControl,
     TouchableOpacity,
-    Alert
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter } from 'expo-router';
 import { collection, query, orderBy, limit, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { useFirebase } from '../src/hooks/useFirebase';
 import { useAuth } from '../src/context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import {
-    IconTrophyAlt as IconTrophy,
-    IconStar,
-    IconMedal,
-    IconHelp,
-    IconGift,
-    IconArrowUp,
-    IconArrowDown
-} from '../src/components/Icons';
-import { colors } from '../src/styles/colors';
+import { IconTrophyAlt as IconTrophy, IconStar, IconMedal, IconHelp, IconGift, IconArrowUp, IconArrowDown } from '../src/components/Icons';
+import { useTheme } from '../src/context/ThemeContext';
 import { typography } from '../src/styles/typography';
 import { moderateScale, scale, verticalScale } from '../src/utils/responsive';
 
@@ -50,6 +42,8 @@ const LeaderBoardScreen = () => {
     const { db } = useFirebase();
     const { user } = useAuth();
     const { t } = useTranslation();
+    const { colors, isDark } = useTheme();
+    const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -254,7 +248,7 @@ const LeaderBoardScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ title: t('leaderboard.title'), headerShown: true }} />
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? "light" : "dark"} />
 
             <FlatList
                 data={leaderboard}
@@ -369,7 +363,7 @@ const LeaderBoardScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background
@@ -383,7 +377,7 @@ const styles = StyleSheet.create({
     loadingText: {
         ...typography.body,
         fontSize: moderateScale(16),
-        color: colors.textMuted,
+        color: colors.textSecondary,
     },
     headerContainer: {
         backgroundColor: colors.primary,
@@ -491,6 +485,7 @@ const styles = StyleSheet.create({
     listHeaderTitle: {
         ...typography.h3,
         fontSize: moderateScale(18),
+        color: colors.textPrimary,
     },
     userRow: {
         flexDirection: 'row',
@@ -503,17 +498,17 @@ const styles = StyleSheet.create({
         gap: moderateScale(12)
     },
     firstPlace: {
-        backgroundColor: '#FFFBEB',
+        backgroundColor: isDark ? '#1E1B4B' : '#FFFBEB',
         borderLeftWidth: 4,
         borderLeftColor: colors.gold,
     },
     secondPlace: {
-        backgroundColor: colors.background,
+        backgroundColor: isDark ? '#1E293B' : colors.background,
         borderLeftWidth: 4,
         borderLeftColor: '#C0C0C0',
     },
     thirdPlace: {
-        backgroundColor: '#FEF2F2',
+        backgroundColor: isDark ? '#450A0A' : '#FEF2F2',
         borderLeftWidth: 4,
         borderLeftColor: '#CD7F32',
     },
@@ -526,7 +521,7 @@ const styles = StyleSheet.create({
         ...typography.body,
         fontWeight: 'bold',
         fontSize: moderateScale(16),
-        color: colors.textMuted,
+        color: colors.textSecondary,
     },
     avatarContainer: {
         position: 'relative',
@@ -570,16 +565,19 @@ const styles = StyleSheet.create({
         ...typography.body,
         fontWeight: '600',
         fontSize: moderateScale(15),
+        color: colors.textPrimary,
     },
     userStats: {
         ...typography.caption,
         fontSize: moderateScale(11),
         marginTop: moderateScale(2),
+        color: colors.textSecondary,
     },
     lastActive: {
         ...typography.caption,
         fontSize: moderateScale(10),
         marginTop: moderateScale(1),
+        color: colors.textMuted,
     },
     pointsContainer: {
         alignItems: 'center',
@@ -598,7 +596,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: moderateScale(-8),
         right: moderateScale(-8),
-        backgroundColor: colors.white,
+        backgroundColor: colors.surface,
         borderRadius: moderateScale(8),
         padding: moderateScale(2),
     },
@@ -620,11 +618,13 @@ const styles = StyleSheet.create({
         ...typography.body,
         fontWeight: 'bold',
         fontSize: moderateScale(15),
+        color: colors.textPrimary,
     },
     infoText: {
         ...typography.caption,
         fontSize: moderateScale(12),
-        textAlign: 'center'
+        textAlign: 'center',
+        color: colors.textSecondary,
     },
 });
 

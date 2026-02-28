@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-    SafeAreaView,
     View,
     Text,
     TextInput,
@@ -9,10 +8,10 @@ import {
     Image,
     Alert,
     ActivityIndicator,
-    StatusBar,
-    KeyboardAvoidingView,
     Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -31,9 +30,9 @@ import {
     IconAlertTriangle,
     IconChevronDown
 } from '../../src/components/Icons';
-import { colors } from '../../src/styles/colors';
 import { typography } from '../../src/styles/typography';
-import { moderateScale, scale, verticalScale } from '../../src/utils/responsive';
+import { moderateScale } from '../../src/utils/responsive';
+import { useTheme } from '../../src/context/ThemeContext';
 
 type LocationData = {
     latitude: number;
@@ -45,8 +44,10 @@ const ReportScreen = () => {
     const { db } = useFirebase(); // Removed storage
     const { user } = useAuth();
     const { t } = useTranslation();
+    const { colors, isDark } = useTheme();
     const router = useRouter();
     const params = useLocalSearchParams();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
     // Form state
     const [title, setTitle] = useState('');
@@ -185,8 +186,8 @@ const ReportScreen = () => {
                 const sizeInKB = manipulatedImage.base64.length / 1024;
                 if (sizeInKB > 800) { // Keep under 800KB to be safe
                     Alert.alert(
-                        'Image Too Large',
-                        'Please choose a smaller image or use the camera to take a new photo.'
+                        t('report.imageTooLarge.title'),
+                        t('report.imageTooLarge.message')
                     );
                     return;
                 }
@@ -196,7 +197,7 @@ const ReportScreen = () => {
             }
         } catch (error) {
             console.error('❌ Error processing image:', error);
-            Alert.alert('Error', 'Failed to process image. Please try again.');
+            Alert.alert(t('common.error'), t('report.processingError'));
         } finally {
             setImageLoading(false);
         }
@@ -216,7 +217,7 @@ const ReportScreen = () => {
             }
         } catch (error) {
             console.error('Error opening camera:', error);
-            Alert.alert('Error', 'Failed to open camera');
+            Alert.alert(t('common.error'), t('report.cameraError'));
         }
     };
 
@@ -234,7 +235,7 @@ const ReportScreen = () => {
             }
         } catch (error) {
             console.error('Error opening gallery:', error);
-            Alert.alert('Error', 'Failed to open gallery');
+            Alert.alert(t('common.error'), t('report.galleryError'));
         }
     };
 
@@ -337,8 +338,8 @@ const ReportScreen = () => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
 
             <KeyboardAwareScrollView
                 style={styles.scrollView}
@@ -578,7 +579,8 @@ const ReportScreen = () => {
                     <TouchableOpacity
                         style={[
                             styles.submitButton,
-                            (loading || !image) && styles.submitButtonDisabled
+                            (loading || !image) && styles.submitButtonDisabled,
+                            { backgroundColor: (loading || !image) ? colors.border : colors.primary }
                         ]}
                         onPress={submitComplaint}
                         disabled={loading || !image}
@@ -608,7 +610,7 @@ const ReportScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
@@ -663,7 +665,7 @@ const styles = StyleSheet.create({
     },
     inputError: {
         borderColor: colors.error,
-        backgroundColor: '#FFF5F5',
+        backgroundColor: isDark ? '#450A0A' : '#FFF5F5',
     },
     errorText: {
         color: colors.error,
@@ -721,7 +723,7 @@ const styles = StyleSheet.create({
     },
     imageButtonError: {
         borderColor: colors.error,
-        backgroundColor: '#FFF5F5',
+        backgroundColor: isDark ? '#450A0A' : '#FFF5F5',
     },
     imageButtonText: {
         ...typography.body,
@@ -731,7 +733,7 @@ const styles = StyleSheet.create({
     imageRequiredNote: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FEF3C7',
+        backgroundColor: isDark ? '#3B2A0A' : '#FEF3C7',
         borderRadius: moderateScale(8),
         padding: moderateScale(12),
         gap: moderateScale(8),
@@ -740,7 +742,7 @@ const styles = StyleSheet.create({
     imageRequiredText: {
         flex: 1,
         ...typography.caption,
-        color: '#92400E',
+        color: isDark ? colors.warning : '#92400E',
         fontSize: moderateScale(12),
     },
     imagePreview: {
@@ -807,7 +809,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         paddingHorizontal: moderateScale(16),
         paddingVertical: moderateScale(8),
-        backgroundColor: '#EFF6FF',
+        backgroundColor: isDark ? colors.surfaceAlt : '#EFF6FF',
         borderRadius: moderateScale(8),
         marginTop: moderateScale(8),
     },
@@ -819,7 +821,7 @@ const styles = StyleSheet.create({
     warningContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FEF3C7',
+        backgroundColor: isDark ? '#3B2A0A' : '#FEF3C7',
         borderRadius: moderateScale(8),
         padding: moderateScale(12),
         gap: moderateScale(8),
@@ -827,7 +829,7 @@ const styles = StyleSheet.create({
     warningText: {
         flex: 1,
         ...typography.bodySmall,
-        color: '#92400E',
+        color: isDark ? colors.warning : '#92400E',
         fontSize: moderateScale(13),
     },
     submitButton: {

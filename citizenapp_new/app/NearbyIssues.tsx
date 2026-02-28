@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     SafeAreaView,
     View,
@@ -7,12 +7,12 @@ import {
     TouchableOpacity,
     Alert,
     ActivityIndicator,
-    StatusBar,
     ScrollView,
     Image,
     Modal,
     Linking,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useFirebase } from '../src/hooks/useFirebase';
@@ -21,7 +21,7 @@ import { useAuth } from '../src/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { IconMapPin, IconRefresh, IconFilter, IconX } from '../src/components/Icons';
-import { colors } from '../src/styles/colors';
+import { useTheme } from '../src/context/ThemeContext';
 import { typography } from '../src/styles/typography';
 import { moderateScale, scale, verticalScale } from '../src/utils/responsive';
 
@@ -58,6 +58,8 @@ const NearbyIssuesScreen = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
     const [issues, setIssues] = useState<NearbyIssue[]>([]);
     const [loading, setLoading] = useState(true);
@@ -259,7 +261,7 @@ const NearbyIssuesScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? "light" : "dark"} />
 
             {/* Header */}
             <View style={styles.header}>
@@ -565,7 +567,7 @@ const NearbyIssuesScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
@@ -603,7 +605,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
@@ -612,7 +614,7 @@ const styles = StyleSheet.create({
     loadingText: {
         ...typography.body,
         fontSize: moderateScale(16),
-        color: colors.textMuted,
+        color: colors.textSecondary,
     },
     map: {
         flex: 1,
@@ -628,11 +630,13 @@ const styles = StyleSheet.create({
         ...typography.body,
         fontSize: moderateScale(15),
         fontWeight: 'bold',
+        color: colors.textPrimary,
     },
     statsSubtext: {
         ...typography.caption,
         fontSize: moderateScale(12),
         marginTop: moderateScale(2),
+        color: colors.textMuted,
     },
     modalOverlay: {
         flex: 1,
@@ -662,6 +666,7 @@ const styles = StyleSheet.create({
     modalTitle: {
         ...typography.h3,
         fontSize: moderateScale(18),
+        color: colors.textPrimary,
     },
     modalCloseButton: {
         padding: moderateScale(4),
@@ -691,37 +696,40 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     statusOpen: {
-        backgroundColor: '#FEE2E2',
+        backgroundColor: isDark ? '#450A0A' : '#FEE2E2',
     },
     statusOpenText: {
-        color: '#991B1B',
+        color: colors.error,
     },
     statusProgress: {
-        backgroundColor: '#FEF3C7',
+        backgroundColor: isDark ? '#422006' : '#FEF3C7',
     },
     statusProgressText: {
-        color: '#92400E',
+        color: colors.warning,
     },
     statusResolved: {
-        backgroundColor: '#D1FAE5',
+        backgroundColor: isDark ? '#064E3B' : '#D1FAE5',
     },
     statusResolvedText: {
-        color: '#065F46',
+        color: colors.success,
     },
     modalCategory: {
         ...typography.caption,
         fontSize: moderateScale(13),
         fontWeight: '500',
+        color: colors.textSecondary,
     },
     modalPriority: {
         ...typography.caption,
         fontSize: moderateScale(13),
+        color: colors.textMuted,
     },
     modalDescription: {
         ...typography.body,
         fontSize: moderateScale(15),
         lineHeight: moderateScale(22),
         marginBottom: moderateScale(20),
+        color: colors.textPrimary,
     },
     modalDetails: {
         gap: moderateScale(8),
@@ -730,6 +738,7 @@ const styles = StyleSheet.create({
         ...typography.caption,
         fontSize: moderateScale(13),
         lineHeight: moderateScale(20),
+        color: colors.textSecondary,
     },
     modalActions: {
         padding: moderateScale(20),
@@ -745,6 +754,7 @@ const styles = StyleSheet.create({
     modalButtonText: {
         ...typography.button,
         fontSize: moderateScale(16),
+        color: colors.white,
     },
     filterBody: {
         padding: moderateScale(20),
@@ -757,6 +767,7 @@ const styles = StyleSheet.create({
         fontSize: moderateScale(16),
         fontWeight: 'bold',
         marginBottom: moderateScale(12),
+        color: colors.textPrimary,
     },
     radiusButtons: {
         flexDirection: 'row',
@@ -770,6 +781,7 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         borderRadius: moderateScale(8),
         alignItems: 'center',
+        backgroundColor: colors.surface,
     },
     radiusButtonActive: {
         backgroundColor: colors.primary,
@@ -779,6 +791,7 @@ const styles = StyleSheet.create({
         ...typography.caption,
         fontSize: moderateScale(13),
         fontWeight: '500',
+        color: colors.textSecondary,
     },
     radiusButtonTextActive: {
         color: colors.white,
@@ -794,14 +807,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: moderateScale(16),
+        backgroundColor: colors.surface,
     },
     filterOptionActive: {
-        backgroundColor: '#EFF6FF',
+        backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF',
         borderColor: colors.primary,
     },
     filterOptionText: {
-        ...typography.caption,
         fontSize: moderateScale(12),
+        color: colors.textSecondary,
     },
     filterOptionTextActive: {
         color: colors.primary,
@@ -817,27 +831,25 @@ const styles = StyleSheet.create({
     clearFiltersButton: {
         flex: 1,
         paddingVertical: moderateScale(12),
-        borderWidth: 1,
-        borderColor: colors.border,
         borderRadius: moderateScale(8),
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     clearFiltersText: {
-        ...typography.body,
-        fontSize: moderateScale(14),
-        color: colors.textMuted,
-        fontWeight: '500',
+        color: colors.textSecondary,
+        fontWeight: '600',
     },
     applyFiltersButton: {
         flex: 2,
-        paddingVertical: moderateScale(12),
         backgroundColor: colors.primary,
+        paddingVertical: moderateScale(12),
         borderRadius: moderateScale(8),
         alignItems: 'center',
     },
     applyFiltersText: {
-        ...typography.button,
-        fontSize: moderateScale(16),
+        color: colors.white,
+        fontWeight: '600',
     },
 });
 

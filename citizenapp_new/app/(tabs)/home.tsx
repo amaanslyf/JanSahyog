@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-    SafeAreaView,
     View,
     Text,
     StyleSheet,
@@ -8,12 +7,13 @@ import {
     TextInput,
     TouchableOpacity,
     Image,
-    StatusBar,
     Linking,
     Alert,
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useFirebase } from '../../src/hooks/useFirebase';
 import { collection, query, onSnapshot, orderBy, Timestamp, limit, where, getDocs } from 'firebase/firestore';
@@ -29,10 +29,9 @@ import {
     IconTrophy,
     IconTrendingUp
 } from '../../src/components/Icons';
-import { colors } from '../../src/styles/colors';
 import { typography } from '../../src/styles/typography';
-import { moderateScale, scale, verticalScale } from '../../src/utils/responsive';
-
+import { moderateScale } from '../../src/utils/responsive';
+import { useTheme } from '../../src/context/ThemeContext';
 
 type Issue = {
     id: string;
@@ -49,9 +48,8 @@ type Issue = {
     lastUpdated?: Timestamp;
 };
 
-type StatusStyle = { container: object; text: object; };
+type HomeStatusStyle = { container: object; text: object; };
 type Category = { name: string; icon: string; key: string; };
-type Worker = { id: string; name: string; role: string; avatar: string; };
 type DashboardStats = {
     totalIssues: number;
     myIssues: number;
@@ -64,6 +62,9 @@ const HomeScreen = () => {
     const router = useRouter();
     const { t } = useTranslation();
     const { db, auth } = useFirebase();
+    const { colors, isDark } = useTheme();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
     const [recentIssues, setRecentIssues] = useState<Issue[]>([]);
     const [stats, setStats] = useState<DashboardStats>({
         totalIssues: 0,
@@ -72,6 +73,7 @@ const HomeScreen = () => {
         inProgress: 0,
         hasUpdates: false
     });
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -85,20 +87,18 @@ const HomeScreen = () => {
         { name: t('categories.other'), icon: '📝', key: 'Other' },
     ];
 
-    const [workers, setWorkers] = useState<Worker[]>([]);
 
-    const filteredIssues = React.useMemo(() => {
+    const filteredIssues = useMemo(() => {
         if (!searchQuery.trim()) return recentIssues;
-        const query = searchQuery.toLowerCase();
+        const queryStr = searchQuery.toLowerCase();
         return recentIssues.filter(issue =>
-            issue.title.toLowerCase().includes(query) ||
-            issue.description.toLowerCase().includes(query) ||
-            issue.category.toLowerCase().includes(query)
+            issue.title?.toLowerCase().includes(queryStr) ||
+            issue.description?.toLowerCase().includes(queryStr) ||
+            issue.category?.toLowerCase().includes(queryStr)
         );
     }, [searchQuery, recentIssues]);
 
-    // Fixed: Load dashboard data function
-    const loadDashboardData = React.useCallback(async () => {
+    const loadDashboardData = useCallback(async () => {
         try {
             const currentUser = auth.currentUser;
             if (!currentUser) {
@@ -173,16 +173,30 @@ const HomeScreen = () => {
                 hasUpdates
             });
 
+
             setIsLoading(false);
             setRefreshing(false);
 
-            return unsubscribe;
+            // Subscribe to unread notifications count
+            const notificationsQuery = query(
+                collection(db, "users", currentUser.uid, "notifications"),
+                where("isRead", "==", false)
+            );
+
+            const unsubNotifs = onSnapshot(notificationsQuery, (snapshot) => {
+                setUnreadNotifications(snapshot.size);
+            });
+
+            return () => {
+                unsubscribe();
+                unsubNotifs();
+            };
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             setIsLoading(false);
             setRefreshing(false);
         }
-    }, [auth, db]); // Fixed: Proper dependencies
+    }, [auth, db, t]);
 
     useEffect(() => {
         let unsubscribe: (() => void) | undefined;
@@ -200,26 +214,26 @@ const HomeScreen = () => {
         };
     }, [loadDashboardData]);
 
-    const onRefresh = React.useCallback(() => {
+    const onRefresh = useCallback(() => {
         setRefreshing(true);
         loadDashboardData();
     }, [loadDashboardData]);
 
-    const getStatusStyle = (status: string): StatusStyle => {
+    const getStatusStyle = (status: string): HomeStatusStyle => {
         switch (status) {
             case 'In Progress':
                 return {
-                    container: { backgroundColor: '#FEF3C7' }, // Keeping soft background
+                    container: { backgroundColor: isDark ? '#3B2A0A' : '#FEF3C7' },
                     text: { color: colors.warning }
                 };
             case 'Resolved':
                 return {
-                    container: { backgroundColor: '#D1FAE5' },
+                    container: { backgroundColor: isDark ? '#064E3B' : '#D1FAE5' },
                     text: { color: colors.success }
                 };
             case 'Open':
                 return {
-                    container: { backgroundColor: '#FEE2E2' },
+                    container: { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' },
                     text: { color: colors.error }
                 };
             default:
@@ -229,21 +243,21 @@ const HomeScreen = () => {
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'Critical': return '#DC2626';
-            case 'High': return '#EA580C';
-            case 'Medium': return '#2563EB';
-            case 'Low': return '#059669';
-            default: return '#6B7280';
+            case 'Critical': return colors.error;
+            case 'High': return '#F97316';
+            case 'Medium': return colors.primary;
+            case 'Low': return colors.success;
+            default: return colors.textMuted;
         }
     };
 
     const handleHelplineCall = async () => {
-        const phoneNumber = 'tel:+910000000000'; // Real helpline number should be configured
+        const phoneNumber = 'tel:+910000000000';
         const canOpen = await Linking.canOpenURL(phoneNumber);
         if (canOpen) {
             Linking.openURL(phoneNumber);
         } else {
-            Alert.alert('Error', 'Unable to make phone call');
+            Alert.alert(t('home.error'), t('home.helplineError'));
         }
     };
 
@@ -263,15 +277,26 @@ const HomeScreen = () => {
         }
     };
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+    if (isLoading && !refreshing) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar style={isDark ? 'light' : 'dark'} />
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            </SafeAreaView>
+        );
+    }
 
-            {/* Header with notifications */}
+    return (
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+
+            {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <View style={styles.logoBg}>
-                        <IconShield />
+                        <IconShield color={colors.white} />
                     </View>
                     <Text style={styles.appName}>{t('home.appName')}</Text>
                 </View>
@@ -280,9 +305,9 @@ const HomeScreen = () => {
                         style={styles.notificationButton}
                         onPress={() => router.push('/notifications')}
                     >
-                        <IconBell hasNotifications={unreadNotifications > 0} />
+                        <IconBell color={colors.textPrimary} hasNotifications={unreadNotifications > 0} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => router.push('/profile')}>
+                    <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
                         <Image
                             source={{ uri: auth.currentUser?.photoURL || 'https://placehold.co/40x40/E2E8F0/4A5568?text=P' }}
                             style={styles.profileImage}
@@ -295,7 +320,12 @@ const HomeScreen = () => {
                 style={styles.mainContent}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                    />
                 }
             >
                 <View style={styles.contentPadding}>
@@ -306,55 +336,55 @@ const HomeScreen = () => {
                         activeOpacity={0.8}
                     >
                         <View style={styles.searchIcon}>
-                            <IconSearch />
+                            <IconSearch color={colors.textMuted} />
                         </View>
-                        <Text style={[styles.searchInput, { color: '#9CA3AF', paddingVertical: moderateScale(10) }]}>
+                        <Text style={[styles.searchInputText, { color: colors.textMuted }]}>
                             {t('home.searchPlaceholder')}
                         </Text>
                     </TouchableOpacity>
 
                     {/* Stats Cards */}
                     <View style={styles.statsGrid}>
-                        <View style={[styles.statCard, { backgroundColor: '#EFF6FF' }]}>
-                            <Text style={styles.statNumber}>{stats.totalIssues}</Text>
-                            <Text style={styles.statLabel}>{t('home.stats.totalIssues')}</Text>
-                            <IconTrendingUp />
+                        <View style={[styles.statCard, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}>
+                            <Text style={[styles.statNumber, { color: colors.primary }]}>{stats.totalIssues}</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('home.stats.totalIssues')}</Text>
+                            <IconTrendingUp color={colors.primary} />
                         </View>
-                        <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
-                            <Text style={styles.statNumber}>{stats.myIssues}</Text>
-                            <Text style={styles.statLabel}>{t('home.stats.myReports')}</Text>
+                        <View style={[styles.statCard, { backgroundColor: isDark ? '#064E3B' : '#F0FDF4' }]}>
+                            <Text style={[styles.statNumber, { color: colors.success }]}>{stats.myIssues}</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('home.stats.myReports')}</Text>
                             <TouchableOpacity onPress={() => router.push('/mycomplaint')}>
-                                <Text style={styles.statLink}>{t('home.stats.viewAll')}</Text>
+                                <Text style={[styles.statLink, { color: colors.success }]}>{t('home.stats.viewAll')}</Text>
                             </TouchableOpacity>
                         </View>
-                        <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
-                            <Text style={styles.statNumber}>{stats.resolvedToday}</Text>
-                            <Text style={styles.statLabel}>{t('home.stats.resolvedToday')}</Text>
+                        <View style={[styles.statCard, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
+                            <Text style={[styles.statNumber, { color: colors.warning }]}>{stats.resolvedToday}</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('home.stats.resolvedToday')}</Text>
                         </View>
-                        <View style={[styles.statCard, { backgroundColor: '#FEE2E2' }]}>
-                            <Text style={styles.statNumber}>{stats.inProgress}</Text>
-                            <Text style={styles.statLabel}>{t('home.stats.inProgress')}</Text>
+                        <View style={[styles.statCard, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
+                            <Text style={[styles.statNumber, { color: colors.error }]}>{stats.inProgress}</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('home.stats.inProgress')}</Text>
                         </View>
                     </View>
 
                     {/* Quick Actions */}
                     <View style={styles.quickActionsGrid}>
                         <TouchableOpacity
-                            style={[styles.quickActionCard, { backgroundColor: '#EFF6FF' }]}
+                            style={[styles.quickActionCard, { backgroundColor: isDark ? '#1E293B' : '#EFF6FF' }]}
                             onPress={() => router.push('/report')}
                         >
-                            <View style={[styles.quickActionIconBg, { backgroundColor: '#3B82F6' }]}>
-                                <IconCamera />
+                            <View style={[styles.quickActionIconBg, { backgroundColor: colors.primary }]}>
+                                <IconCamera color={colors.white} />
                             </View>
                             <Text style={styles.quickActionText}>{t('home.quickActions.report')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.quickActionCard, { backgroundColor: '#F0FDF4' }]}
+                            style={[styles.quickActionCard, { backgroundColor: isDark ? '#064E3B' : '#F0FDF4' }]}
                             onPress={() => router.push('/mycomplaint')}
                         >
-                            <View style={[styles.quickActionIconBg, { backgroundColor: '#22C55E' }]}>
-                                <IconActivity />
+                            <View style={[styles.quickActionIconBg, { backgroundColor: colors.success }]}>
+                                <IconActivity color={colors.white} />
                             </View>
                             <Text style={styles.quickActionText}>{t('home.quickActions.track')}</Text>
                             {stats.hasUpdates && (
@@ -365,31 +395,31 @@ const HomeScreen = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.quickActionCard, { backgroundColor: '#F5F3FF' }]}
+                            style={[styles.quickActionCard, { backgroundColor: isDark ? '#2E1065' : '#F5F3FF' }]}
                             onPress={() => router.push('/NearbyIssues')}
                         >
-                            <View style={[styles.quickActionIconBg, { backgroundColor: '#8B5CF6' }]}>
-                                <IconMapPin />
+                            <View style={[styles.quickActionIconBg, { backgroundColor: colors.accent }]}>
+                                <IconMapPin color={colors.white} />
                             </View>
                             <Text style={styles.quickActionText}>{t('home.quickActions.nearby')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.quickActionCard, { backgroundColor: '#FEF2F2' }]}
+                            style={[styles.quickActionCard, { backgroundColor: isDark ? '#450A0A' : '#FEF2F2' }]}
                             onPress={handleHelplineCall}
                         >
-                            <View style={[styles.quickActionIconBg, { backgroundColor: '#EF4444' }]}>
-                                <IconPhone />
+                            <View style={[styles.quickActionIconBg, { backgroundColor: colors.error }]}>
+                                <IconPhone color={colors.white} />
                             </View>
                             <Text style={styles.quickActionText}>{t('home.quickActions.helpline')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.quickActionCard, { backgroundColor: '#FFFBEB' }]}
+                            style={[styles.quickActionCard, { backgroundColor: isDark ? '#451A03' : '#FFFBEB' }]}
                             onPress={() => router.push('/leaderBoard')}
                         >
-                            <View style={[styles.quickActionIconBg, { backgroundColor: '#F59E0B' }]}>
-                                <IconTrophy />
+                            <View style={[styles.quickActionIconBg, { backgroundColor: colors.warning }]}>
+                                <IconTrophy color={colors.white} />
                             </View>
                             <Text style={styles.quickActionText}>{t('home.quickActions.leaderboard')}</Text>
                         </TouchableOpacity>
@@ -418,8 +448,8 @@ const HomeScreen = () => {
                     </View>
 
                     {/* Info Banner */}
-                    <View style={styles.banner}>
-                        <View>
+                    <View style={[styles.banner, { backgroundColor: colors.primary }]}>
+                        <View style={{ flex: 1 }}>
                             <Text style={styles.bannerTitle}>{t('home.bannerTitle')}</Text>
                             <Text style={styles.bannerText}>{t('home.bannerText')}</Text>
                         </View>
@@ -430,7 +460,7 @@ const HomeScreen = () => {
                     <View>
                         <Text style={styles.sectionTitle}>{t('home.recentUpdates')}</Text>
                         {isLoading ? (
-                            <ActivityIndicator size="large" color="#2563EB" style={{ marginTop: 20 }} />
+                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
                         ) : (
                             <View style={styles.issuesList}>
                                 {filteredIssues.map((issue) => {
@@ -459,12 +489,12 @@ const HomeScreen = () => {
                                                     </View>
                                                 </View>
 
-                                                <Text style={styles.issueDescription} numberOfLines={1}>
+                                                <Text style={[styles.issueDescription, { color: colors.textSecondary }]} numberOfLines={1}>
                                                     {issue.description}
                                                 </Text>
 
                                                 <View style={styles.issueFooter}>
-                                                    <Text style={styles.issueTime}>
+                                                    <Text style={[styles.issueTime, { color: colors.textMuted }]}>
                                                         {formatTimeAgo(issue.reportedAt)}
                                                     </Text>
                                                     <View style={[styles.priorityDot, { backgroundColor: priorityColor }]} />
@@ -480,201 +510,133 @@ const HomeScreen = () => {
                         )}
                     </View>
 
-                    {/* Top Responders */}
-                    <View>
-                        <Text style={styles.sectionTitle}>{t('home.topResponders')}</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {workers.map((worker) => (
-                                <View key={worker.id} style={styles.workerCard}>
-                                    <Image source={{ uri: worker.avatar }} style={styles.workerAvatar} />
-                                    <Text style={styles.workerName}>{worker.name}</Text>
-                                    <Text style={styles.workerRole}>{worker.role}</Text>
-                                </View>
-                            ))}
-                        </ScrollView>
-                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: moderateScale(16),
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        shadowColor: colors.textPrimary,
+        elevation: 2,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
-        elevation: 2,
     },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(8) },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(10) },
     logoBg: { backgroundColor: colors.primary, padding: moderateScale(8), borderRadius: moderateScale(8) },
-    appName: { ...typography.h3, fontSize: moderateScale(20) },
+    appName: { ...typography.h3, fontSize: moderateScale(20), color: colors.textPrimary },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(16) },
     notificationButton: { position: 'relative' },
-    profileImage: { width: moderateScale(32), height: moderateScale(32), borderRadius: moderateScale(16) },
+    profileImage: { width: moderateScale(34), height: moderateScale(34), borderRadius: moderateScale(17) },
     mainContent: { flex: 1 },
-    contentPadding: { padding: moderateScale(16), paddingBottom: moderateScale(24), gap: moderateScale(24) },
-    searchContainer: { position: 'relative' },
-    searchIcon: { position: 'absolute', top: moderateScale(14), left: moderateScale(16), zIndex: 1 },
-    searchInput: {
-        backgroundColor: '#F3F4F6',
+    contentPadding: { padding: moderateScale(16), paddingBottom: moderateScale(40) },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
-        borderRadius: moderateScale(24),
-        paddingVertical: moderateScale(12),
-        paddingLeft: moderateScale(48),
-        paddingRight: moderateScale(16),
-        fontSize: moderateScale(14),
-        color: colors.textPrimary
+        borderRadius: moderateScale(12),
+        paddingHorizontal: moderateScale(12),
+        marginBottom: moderateScale(24),
+        height: moderateScale(48),
     },
+    searchIcon: { marginRight: moderateScale(10) },
+    searchInputText: { ...typography.body, fontSize: moderateScale(14) },
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        gap: moderateScale(8),
+        marginBottom: moderateScale(24),
+        gap: moderateScale(12),
     },
     statCard: {
         width: '48%',
         padding: moderateScale(16),
         borderRadius: moderateScale(12),
-        position: 'relative',
-        minHeight: moderateScale(80),
+        gap: moderateScale(4),
     },
-    statNumber: {
-        ...typography.h2,
-        fontSize: moderateScale(24),
-    },
-    statLabel: {
-        ...typography.caption,
-        fontSize: moderateScale(12),
-        marginTop: moderateScale(4),
-    },
-    statLink: {
-        ...typography.caption,
-        fontSize: moderateScale(12),
-        color: colors.primary,
-        fontWeight: '600',
-        marginTop: moderateScale(4),
-    },
-    sectionTitle: { ...typography.h3, fontSize: moderateScale(18), marginBottom: moderateScale(12) },
+    statNumber: { ...typography.h2, fontSize: moderateScale(22) },
+    statLabel: { ...typography.caption, fontSize: moderateScale(12) },
+    statLink: { ...typography.caption, fontSize: moderateScale(12), fontWeight: '600', marginTop: moderateScale(4) },
     quickActionsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        rowGap: moderateScale(16)
+        marginBottom: moderateScale(24),
+        gap: moderateScale(12),
     },
     quickActionCard: {
-        width: '48%',
-        padding: moderateScale(16),
+        width: '30.5%',
+        padding: moderateScale(12),
         borderRadius: moderateScale(12),
+        alignItems: 'center',
         gap: moderateScale(8),
-        position: 'relative',
     },
-    quickActionIconBg: { padding: moderateScale(8), borderRadius: moderateScale(8), alignSelf: 'flex-start' },
-    quickActionText: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary, fontSize: moderateScale(14) },
+    quickActionIconBg: { padding: moderateScale(10), borderRadius: moderateScale(10) },
+    quickActionText: {
+        ...typography.caption,
+        fontWeight: '600',
+        textAlign: 'center',
+        color: colors.textPrimary,
+        fontSize: moderateScale(11),
+    },
     updateBadge: {
         position: 'absolute',
-        top: moderateScale(8),
-        right: moderateScale(8),
+        top: moderateScale(6),
+        right: moderateScale(6),
         backgroundColor: colors.error,
-        borderRadius: moderateScale(10),
-        paddingHorizontal: moderateScale(6),
-        paddingVertical: moderateScale(2),
+        paddingHorizontal: moderateScale(4),
+        paddingVertical: moderateScale(1),
+        borderRadius: moderateScale(4),
     },
-    updateBadgeText: {
-        color: colors.white,
-        fontSize: moderateScale(10),
-        fontWeight: 'bold',
-    },
-    categoryCard: { alignItems: 'center', gap: moderateScale(8), width: moderateScale(80), marginRight: moderateScale(8) },
-    categoryIconBg: { backgroundColor: '#F3F4F6', padding: moderateScale(16), borderRadius: moderateScale(12) },
-    categoryIconText: { fontSize: moderateScale(24) },
-    categoryText: { ...typography.bodySmall, fontWeight: '500', textAlign: 'center', fontSize: moderateScale(12) },
+    updateBadgeText: { color: colors.white, fontSize: moderateScale(8), fontWeight: 'bold' },
+    sectionTitle: { ...typography.h3, fontSize: moderateScale(18), marginBottom: moderateScale(16), color: colors.textPrimary },
+    categoryCard: { alignItems: 'center', gap: moderateScale(8), marginRight: moderateScale(16), width: moderateScale(70) },
+    categoryIconBg: { backgroundColor: colors.surface, padding: moderateScale(12), borderRadius: moderateScale(12), borderWidth: 1, borderColor: colors.border },
+    categoryIconText: { fontSize: moderateScale(22) },
+    categoryText: { ...typography.caption, fontWeight: '500', color: colors.textSecondary, fontSize: moderateScale(11) },
     banner: {
-        backgroundColor: colors.accent,
         padding: moderateScale(20),
         borderRadius: moderateScale(16),
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginVertical: moderateScale(24),
     },
-    bannerTitle: { ...typography.h3, color: colors.white, fontSize: moderateScale(18) },
-    bannerText: { ...typography.bodySmall, color: colors.white, opacity: 0.9, marginTop: moderateScale(4), maxWidth: '90%', fontSize: moderateScale(13) },
-    bannerEmoji: { fontSize: moderateScale(32) },
+    bannerTitle: { ...typography.h3, color: colors.white, fontSize: moderateScale(18), marginBottom: moderateScale(4) },
+    bannerText: { ...typography.body, color: colors.white, opacity: 0.9, fontSize: moderateScale(13) },
+    bannerEmoji: { fontSize: moderateScale(32), marginLeft: moderateScale(10) },
     issuesList: { gap: moderateScale(12) },
     issueCard: {
         backgroundColor: colors.surface,
-        padding: moderateScale(16),
         borderRadius: moderateScale(12),
+        padding: moderateScale(12),
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: moderateScale(16),
+        gap: moderateScale(12),
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
     },
-    issueImage: { width: moderateScale(64), height: moderateScale(64), borderRadius: moderateScale(8), backgroundColor: '#F3F4F6' },
-    issueDetails: { flex: 1, gap: moderateScale(6) },
-    issueHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start'
-    },
-    issueTitle: { ...typography.body, fontWeight: 'bold', fontSize: moderateScale(15), color: colors.textPrimary, flex: 1, marginRight: moderateScale(8) },
-    issueDescription: { ...typography.bodySmall, lineHeight: moderateScale(18), fontSize: moderateScale(13) },
-    issueFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: moderateScale(8),
-        marginTop: moderateScale(4),
-    },
-    issueTime: {
-        ...typography.caption,
-        fontSize: moderateScale(11),
-    },
-    priorityDot: {
-        width: moderateScale(6),
-        height: moderateScale(6),
-        borderRadius: moderateScale(3),
-    },
-    priorityText: {
-        ...typography.caption,
-        fontSize: moderateScale(11),
-        fontWeight: '500',
-    },
-    statusBadge: { paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(4), borderRadius: moderateScale(12) },
-    statusText: { fontSize: moderateScale(12), fontWeight: '600' },
-    workerCard: {
-        backgroundColor: colors.surface,
-        borderRadius: moderateScale(12),
-        padding: moderateScale(16),
-        alignItems: 'center',
-        marginRight: moderateScale(12),
-        width: moderateScale(120),
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    workerAvatar: { width: moderateScale(60), height: moderateScale(60), borderRadius: moderateScale(30), marginBottom: moderateScale(8) },
-    workerName: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary, textAlign: 'center', fontSize: moderateScale(13) },
-    workerRole: { ...typography.caption, textAlign: 'center', fontSize: moderateScale(11) },
+    issueImage: { width: moderateScale(80), height: moderateScale(80), borderRadius: moderateScale(8) },
+    issueDetails: { flex: 1, gap: moderateScale(4) },
+    issueHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    issueTitle: { ...typography.h4, fontSize: moderateScale(15), color: colors.textPrimary, flex: 1 },
+    issueDescription: { ...typography.body, fontSize: moderateScale(13) },
+    issueFooter: { flexDirection: 'row', alignItems: 'center', gap: moderateScale(8), marginTop: moderateScale(4) },
+    issueTime: { ...typography.caption, fontSize: moderateScale(11) },
+    priorityDot: { width: moderateScale(8), height: moderateScale(8), borderRadius: moderateScale(4) },
+    priorityText: { ...typography.caption, fontSize: moderateScale(11), fontWeight: '600' },
+    statusBadge: { paddingHorizontal: moderateScale(8), paddingVertical: moderateScale(2), borderRadius: moderateScale(6) },
+    statusText: { fontSize: moderateScale(10), fontWeight: '700' },
 });
 
 export default HomeScreen;

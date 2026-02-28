@@ -51,8 +51,12 @@ service cloud.firestore {
       allow read, list: if true;
 
       allow create: if isAuthenticated();
+      // Allow admins or the reporter to update any fields
+      // Allow any authenticated user to update ONLY upvote fields
       allow update: if isAdmin() ||
-        (isAuthenticated() && resource.data.reportedBy == request.auth.uid);
+        (isAuthenticated() && resource.data.reportedById == request.auth.uid) ||
+        (isAuthenticated() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'upvotedBy']));
       allow delete: if isAdmin();
 
       match /comments/{commentId} {

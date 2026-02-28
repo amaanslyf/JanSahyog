@@ -1,43 +1,54 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { IconHome, IconPlus, IconFileText, IconUser } from '../../src/components/Icons';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function TabsLayout() {
+    const { colors } = useTheme();
+    const { t } = useTranslation();
+
     return (
         <Tabs
             screenOptions={{
-                tabBarActiveTintColor: '#2563EB',
-                tabBarInactiveTintColor: '#6B7280',
-                // UPDATE: This one line will hide the header on all tab screens
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.textMuted,
                 headerShown: false,
+                tabBarStyle: {
+                    backgroundColor: colors.surface,
+                    borderTopColor: colors.border,
+                },
+                tabBarLabelStyle: {
+                    fontSize: 12,
+                    fontWeight: '500',
+                }
             }}
         >
             <Tabs.Screen
-                name="home" // This corresponds to home.tsx
+                name="home"
                 options={{
-                    // Use 'tabBarLabel' for the text below the icon
-                    tabBarLabel: 'Home',
+                    tabBarLabel: t('nav.home'),
                     tabBarIcon: ({ color }) => <IconHome color={color} />,
                 }}
             />
             <Tabs.Screen
-                name="report" // This corresponds to report.tsx
+                name="report"
                 options={{
-                    tabBarLabel: 'Report',
+                    tabBarLabel: t('nav.report'),
                     tabBarIcon: ({ color }) => <IconPlus color={color} />,
                 }}
             />
             <Tabs.Screen
-                name="mycomplaint" // This corresponds to mycomplaint.tsx
+                name="mycomplaint"
                 options={{
-                    tabBarLabel: 'My Complaints',
+                    tabBarLabel: t('nav.myReports'),
                     tabBarIcon: ({ color }) => <IconFileText color={color} />,
                 }}
             />
             <Tabs.Screen
-                name="profile" // This corresponds to profile.tsx
+                name="profile"
                 options={{
-                    tabBarLabel: 'Profile',
+                    tabBarLabel: t('nav.profile'),
                     tabBarIcon: ({ color }) => <IconUser color={color} />,
                 }}
             />

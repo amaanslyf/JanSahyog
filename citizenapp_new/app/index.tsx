@@ -1,37 +1,31 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    StatusBar,
     Animated,
     Dimensions,
     ScrollView,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useFirebase } from '../src/hooks/useFirebase';
-import { collection, getDocs, query, where, getCountFromServer } from 'firebase/firestore';
 
-import { IconShield, IconCamera, IconUsers, IconTrendingUp } from '../src/components/Icons';
-import { colors } from '../src/styles/colors';
 import { typography } from '../src/styles/typography';
+import { useTheme } from '../src/context/ThemeContext';
+import { moderateScale } from '../src/utils/responsive';
 
 const { width, height } = Dimensions.get('window');
 
 const WelcomeScreen = () => {
     const router = useRouter();
     const { t } = useTranslation();
-    const { db } = useFirebase();
+    const { colors, isDark } = useTheme();
+    const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
     const [currentFeature, setCurrentFeature] = useState(0);
-    const [stats, setStats] = useState({
-        issues: 0,
-        citizens: 0,
-        cities: 1 // Starting with 1 city :)
-    });
 
     // Animation values
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -46,20 +40,20 @@ const WelcomeScreen = () => {
     const features = [
         {
             icon: <IconCamera />,
-            title: "Report Issues",
-            description: "Take photos and report civic problems in your area instantly.",
+            title: t('welcome.features.report.title'),
+            description: t('welcome.features.report.description'),
             color: colors.success
         },
         {
             icon: <IconUsers />,
-            title: "Track Progress",
-            description: "Monitor the status of your reports and see real-time updates.",
+            title: t('welcome.features.track.title'),
+            description: t('welcome.features.track.description'),
             color: colors.accent
         },
         {
             icon: <IconTrendingUp />,
-            title: "Make Impact",
-            description: "Earn points, climb the leaderboard, and make your city better.",
+            title: t('welcome.features.impact.title'),
+            description: t('welcome.features.impact.description'),
             color: colors.gold
         }
     ];
@@ -110,37 +104,20 @@ const WelcomeScreen = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Fetch real stats
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const issuesCol = collection(db, 'civicIssues');
-                const usersCol = collection(db, 'users');
-
-                const [issuesSnap, usersSnap] = await Promise.all([
-                    getCountFromServer(issuesCol),
-                    getCountFromServer(usersCol)
-                ]);
-
-                setStats({
-                    issues: issuesSnap.data().count,
-                    citizens: usersSnap.data().count,
-                    cities: 1 // For now
-                });
-            } catch (error) {
-                console.error('Error fetching welcome stats:', error);
-            }
-        };
-        fetchStats();
-    }, [db]);
+    // Stats are fetched after login on the home screen.
+    // The welcome screen shows placeholder values to avoid
+    // unauthenticated Firestore permission errors.
 
     const handlePress = () => {
-        router.replace('/login');
+        // Ensure Root Layout is ready
+        setTimeout(() => {
+            router.replace('/login');
+        }, 50);
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDark ? 'light' : 'dark'} />
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -164,12 +141,12 @@ const WelcomeScreen = () => {
                         <View style={styles.iconGlow} />
                     </View>
 
-                    <Text style={styles.title}>JanSahyog</Text>
+                    <Text style={styles.title}>{t('welcome.title')}</Text>
                     <Text style={styles.subtitle}>
-                        Your Voice, Your City, Your Impact
+                        {t('welcome.subtitle')}
                     </Text>
                     <Text style={styles.description}>
-                        Join thousands of citizens making their communities better through civic engagement and real-time issue reporting.
+                        {t('welcome.description')}
                     </Text>
                 </Animated.View>
 
@@ -203,25 +180,7 @@ const WelcomeScreen = () => {
                     ))}
                 </View>
 
-                {/* Stats Section */}
-                <Animated.View
-                    style={[styles.statsContainer, { opacity: fadeAnim }]}
-                >
-                    <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>{stats.issues > 0 ? `${stats.issues}+` : '---'}</Text>
-                        <Text style={styles.statLabel}>Issues Managed</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>{stats.citizens > 0 ? `${stats.citizens}+` : '---'}</Text>
-                        <Text style={styles.statLabel}>Active Citizens</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>{stats.cities}</Text>
-                        <Text style={styles.statLabel}>City</Text>
-                    </View>
-                </Animated.View>
+
 
                 {/* CTA Section */}
                 <Animated.View
@@ -234,14 +193,14 @@ const WelcomeScreen = () => {
                     ]}
                 >
                     <TouchableOpacity style={styles.primaryButton} onPress={handlePress}>
-                        <Text style={styles.primaryButtonText}>Get Started</Text>
+                        <Text style={styles.primaryButtonText}>{t('welcome.getStarted')}</Text>
                         <View style={styles.buttonArrow}>
                             <Text style={styles.arrowText}>→</Text>
                         </View>
                     </TouchableOpacity>
 
                     <Text style={styles.ctaSubtext}>
-                        Join the movement • Free forever • Make a difference
+                        {t('welcome.ctaSubtext')}
                     </Text>
                 </Animated.View>
             </ScrollView>
@@ -256,24 +215,24 @@ const WelcomeScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 24,
-        paddingBottom: 40,
+        paddingHorizontal: moderateScale(24),
+        paddingBottom: moderateScale(40),
     },
     header: {
         alignItems: 'center',
-        paddingTop: 60,
-        paddingBottom: 40,
+        paddingTop: moderateScale(60),
+        paddingBottom: moderateScale(40),
     },
     iconContainer: {
         position: 'relative',
-        marginBottom: 24,
+        marginBottom: moderateScale(24),
     },
     iconGlow: {
         position: 'absolute',
@@ -288,29 +247,31 @@ const styles = StyleSheet.create({
     },
     title: {
         ...typography.h1,
-        fontSize: 36,
-        marginBottom: 8,
+        fontSize: moderateScale(36),
+        marginBottom: moderateScale(8),
         textAlign: 'center',
+        color: colors.textPrimary,
     },
     subtitle: {
         ...typography.h3,
         color: colors.primary,
-        marginBottom: 16,
+        marginBottom: moderateScale(16),
         textAlign: 'center',
     },
     description: {
         ...typography.body,
         textAlign: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: moderateScale(20),
+        color: colors.textSecondary,
     },
     featuresContainer: {
-        gap: 16,
-        marginBottom: 40,
+        gap: moderateScale(16),
+        marginBottom: moderateScale(40),
     },
     featureCard: {
         backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 24,
+        borderRadius: moderateScale(16),
+        padding: moderateScale(24),
         alignItems: 'center',
         shadowColor: colors.textPrimary,
         shadowOffset: {
@@ -329,66 +290,31 @@ const styles = StyleSheet.create({
         transform: [{ scale: 1.02 }],
     },
     featureIcon: {
-        padding: 16,
-        borderRadius: 16,
-        marginBottom: 16,
+        padding: moderateScale(16),
+        borderRadius: moderateScale(16),
+        marginBottom: moderateScale(16),
     },
     featureTitle: {
         ...typography.h3,
-        marginBottom: 8,
+        marginBottom: moderateScale(8),
         textAlign: 'center',
+        color: colors.textPrimary,
     },
     featureDescription: {
         ...typography.bodySmall,
         textAlign: 'center',
-        lineHeight: 22,
-    },
-    statsContainer: {
-        flexDirection: 'row',
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 24,
-        marginBottom: 40,
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        shadowColor: colors.textPrimary,
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
-    },
-    statItem: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    statNumber: {
-        ...typography.h2,
-        color: colors.primary,
-        marginBottom: 4,
-    },
-    statLabel: {
-        ...typography.caption,
-        fontSize: 14,
-        textAlign: 'center',
-    },
-    statDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: colors.border,
-        marginHorizontal: 16,
+        lineHeight: moderateScale(22),
+        color: colors.textSecondary,
     },
     ctaContainer: {
         alignItems: 'center',
-        paddingTop: 20,
+        paddingTop: moderateScale(20),
     },
     primaryButton: {
         backgroundColor: colors.primary,
-        paddingVertical: 18,
-        paddingHorizontal: 32,
-        borderRadius: 16,
+        paddingVertical: moderateScale(18),
+        paddingHorizontal: moderateScale(32),
+        borderRadius: moderateScale(16),
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
@@ -404,22 +330,23 @@ const styles = StyleSheet.create({
     },
     primaryButtonText: {
         ...typography.button,
-        fontSize: 18,
+        fontSize: moderateScale(18),
     },
     buttonArrow: {
-        marginLeft: 8,
+        marginLeft: moderateScale(8),
     },
     arrowText: {
         color: colors.white,
-        fontSize: 18,
+        fontSize: moderateScale(18),
         fontWeight: 'bold',
     },
     ctaSubtext: {
         ...typography.caption,
-        fontSize: 14,
+        fontSize: moderateScale(14),
         textAlign: 'center',
-        marginTop: 16,
+        marginTop: moderateScale(16),
         fontStyle: 'italic',
+        color: colors.textMuted,
     },
     backgroundDecorations: {
         position: 'absolute',
@@ -458,3 +385,45 @@ const styles = StyleSheet.create({
 });
 
 export default WelcomeScreen;
+
+// Icon Components
+const IconShield = () => {
+    const { colors } = useTheme();
+    return (
+        <Svg width={moderateScale(40)} height={moderateScale(40)} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </Svg>
+    );
+};
+
+const IconCamera = () => {
+    const { colors } = useTheme();
+    return (
+        <Svg width={moderateScale(32)} height={moderateScale(32)} viewBox="0 0 24 24" fill="none" stroke={colors.success} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <Circle cx="12" cy="13" r="4" />
+        </Svg>
+    );
+};
+
+const IconUsers = () => {
+    const { colors } = useTheme();
+    return (
+        <Svg width={moderateScale(32)} height={moderateScale(32)} viewBox="0 0 24 24" fill="none" stroke={colors.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <Circle cx="9" cy="7" r="4" />
+            <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </Svg>
+    );
+};
+
+const IconTrendingUp = () => {
+    const { colors } = useTheme();
+    return (
+        <Svg width={moderateScale(32)} height={moderateScale(32)} viewBox="0 0 24 24" fill="none" stroke={colors.gold} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <Polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <Polyline points="17 6 23 6 23 12" />
+        </Svg>
+    );
+};

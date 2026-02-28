@@ -24,7 +24,7 @@ import { useRouter } from 'expo-router';
 import { useFirebase } from '../src/hooks/useFirebase';
 import { useTranslation } from 'react-i18next';
 import { IconShield, IconMail, IconLock, IconEye, IconEyeOff } from '../src/components/Icons';
-import { colors } from '../src/styles/colors';
+import { colors, darkTheme } from '../src/styles/colors';
 import { typography } from '../src/styles/typography';
 
 const LoginScreen = () => {
@@ -133,7 +133,12 @@ const LoginScreen = () => {
             Alert.alert(
                 'Welcome! 🎉',
                 'Your account has been created successfully. You can now start reporting civic issues and make your city better!',
-                [{ text: 'Get Started', onPress: () => router.replace('/(tabs)/home') }]
+                [{
+                    text: 'Get Started', onPress: () => {
+                        // Small delay to ensure layout is ready
+                        setTimeout(() => router.replace('/(tabs)/home'), 100);
+                    }
+                }]
             );
 
         } catch (err: any) {
@@ -404,7 +409,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.backgroundDark,
+        backgroundColor: darkTheme.background,
     },
     keyboardView: {
         flex: 1,
@@ -455,12 +460,12 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surfaceDark,
+        backgroundColor: darkTheme.surface,
         borderRadius: 12,
         marginBottom: 16,
         paddingHorizontal: 16,
         borderWidth: 1,
-        borderColor: colors.borderDark,
+        borderColor: darkTheme.border,
     },
     inputIcon: {
         marginRight: 12,

@@ -15,7 +15,7 @@ import {
 import { DataGrid, GridToolbar, type GridColDef } from '@mui/x-data-grid';
 import {
     collection, onSnapshot, query, doc, updateDoc, addDoc,
-    getDocs, orderBy, where, serverTimestamp,
+    getDocs, where, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
 import { useAlert } from '../hooks/useAlert';
@@ -41,8 +41,7 @@ const UsersPage: React.FC = () => {
 
     // Calculate user statistics
     const calculateUserStatistics = useCallback(async (usersList: AppUser[]): Promise<AppUser[]> => {
-        const enriched: AppUser[] = [];
-        for (const user of usersList) {
+        const enrichmentPromises = usersList.map(async (user) => {
             try {
                 const userIssuesQuery = query(collection(db, 'civicIssues'), where('reportedById', '==', user.id));
                 const snapshot = await getDocs(userIssuesQuery);
@@ -52,29 +51,42 @@ const UsersPage: React.FC = () => {
                     totalIssues++;
                     if (docSnap.data().status === 'Resolved') resolvedIssues++;
                 });
-                enriched.push({
+                return {
                     ...user,
                     totalIssues,
                     resolvedIssues,
                     openIssues: totalIssues - resolvedIssues,
-                });
-            } catch {
-                enriched.push({ ...user, totalIssues: 0, resolvedIssues: 0, openIssues: 0 });
+                };
+            } catch (error) {
+                console.error(`Error enriching user ${user.id}:`, error);
+                return { ...user, totalIssues: 0, resolvedIssues: 0, openIssues: 0 };
             }
-        }
-        return enriched;
+        });
+        return Promise.all(enrichmentPromises);
     }, []);
 
     // Load users
     useEffect(() => {
         const loadData = async () => {
-            const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+            const usersQuery = query(collection(db, 'users'));
             const unsub = onSnapshot(usersQuery, async (snapshot) => {
                 const list: AppUser[] = [];
                 snapshot.forEach((docSnap) => list.push({ id: docSnap.id, ...docSnap.data() } as AppUser));
+
+                // Set initial list immediately so UI is responsive
+                setUsers((prevUsers) => {
+                    // Maintain existing enrichment if possible to avoid flickering
+                    const enrichedMap = new Map(prevUsers.map(u => [u.id, u]));
+                    return list.map(u => {
+                        const existing = enrichedMap.get(u.id);
+                        return existing ? { ...u, ...existing, ...u } : u; // doc data wins, but keep stats
+                    });
+                });
+                setLoading(false);
+
+                // Start enrichment in background
                 const enriched = await calculateUserStatistics(list);
                 setUsers(enriched);
-                setLoading(false);
             });
             unsubscribeRef.current = unsub;
         };

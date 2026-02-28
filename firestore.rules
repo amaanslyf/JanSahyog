@@ -7,12 +7,10 @@ service cloud.firestore {
     // Helper functions
     // ──────────────────────────────────────────────
 
-    // Check if the request is from an authenticated user
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Check if the authenticated user is an admin
     function isAdmin() {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -20,7 +18,6 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
     }
 
-    // Check if the authenticated user owns this document
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
@@ -29,24 +26,19 @@ service cloud.firestore {
     // Users collection
     // ──────────────────────────────────────────────
     match /users/{userId} {
-      // Users can read their own profile; admins can read all
       allow read: if isOwner(userId) || isAdmin();
+      
+      // Allow unauthenticated count for welcome screen statistics
+      allow list: if true; 
 
-      // Users can create their own profile during signup
       allow create: if isOwner(userId);
-
-      // Users can update their own profile; admins can update any user
       allow update: if isOwner(userId) || isAdmin();
-
-      // Only admins can delete users
       allow delete: if isAdmin();
 
-      // User's personal notifications subcollection
       match /notifications/{notificationId} {
-        // Users can read their own notifications; admins can write (to send notifications)
         allow read: if isOwner(userId);
         allow create: if isAdmin();
-        allow update: if isOwner(userId); // Mark as read
+        allow update: if isOwner(userId);
         allow delete: if isOwner(userId) || isAdmin();
       }
     }
@@ -55,20 +47,14 @@ service cloud.firestore {
     // Civic Issues collection
     // ──────────────────────────────────────────────
     match /civicIssues/{issueId} {
-      // Any authenticated user can read issues (for citizen app map view, etc.)
-      allow read: if isAuthenticated();
+      // Allow anyone to read public issues and list them for stats
+      allow read, list: if true;
 
-      // Any authenticated user can create an issue (citizen reporting)
       allow create: if isAuthenticated();
-
-      // The reporter or admins can update an issue
       allow update: if isAdmin() ||
         (isAuthenticated() && resource.data.reportedBy == request.auth.uid);
-
-      // Only admins can delete issues
       allow delete: if isAdmin();
 
-      // Comments subcollection on issues
       match /comments/{commentId} {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated();
@@ -77,7 +63,7 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────
-    // Complaints collection (pending uploads / offline)
+    // Complaints & Offline storage
     // ──────────────────────────────────────────────
     match /complaints/{complaintId} {
       allow read: if isAuthenticated();
@@ -88,47 +74,24 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────
-    // Departments collection
+    // Departments
     // ──────────────────────────────────────────────
     match /departments/{departmentId} {
-      // All authenticated users can read departments (for dropdowns etc.)
       allow read: if isAuthenticated();
-
-      // Only admins can create/update/delete departments
       allow create, update, delete: if isAdmin();
     }
 
     // ──────────────────────────────────────────────
-    // Admin-only collections
+    // Administrative Collections
     // ──────────────────────────────────────────────
-
-    // Sent notification logs
-    match /sentNotifications/{notifId} {
-      allow read, write: if isAdmin();
-    }
-
-    // Notification logs
-    match /notificationLogs/{logId} {
-      allow read, write: if isAdmin();
-    }
-
-    // Notification templates
-    match /notificationTemplates/{templateId} {
-      allow read, write: if isAdmin();
-    }
-
-    // Automation rules
-    match /automationRules/{ruleId} {
-      allow read, write: if isAdmin();
-    }
-
-    // Auto-assignment rules
-    match /autoAssignmentRules/{ruleId} {
-      allow read, write: if isAdmin();
-    }
+    match /sentNotifications/{notifId} { allow read, write: if isAdmin(); }
+    match /notificationLogs/{logId} { allow read, write: if isAdmin(); }
+    match /notificationTemplates/{templateId} { allow read, write: if isAdmin(); }
+    match /automationRules/{ruleId} { allow read, write: if isAdmin(); }
+    match /autoAssignmentRules/{ruleId} { allow read, write: if isAdmin(); }
 
     // ──────────────────────────────────────────────
-    // Default: deny all unmatched paths
+    // Default Deny
     // ──────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
